@@ -17,14 +17,17 @@ permissions:
 jobs:
   build-windows:
     name: Build Windows x64
-    runs-on: windows-latest
+    runs-on: windows-2019
     steps:
       - uses: actions/checkout@v4
 
       - name: Use Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '14.x'
+          node-version: '14.21.3'
+
+      - name: Configure node-gyp
+        run: npm config set msvs_version 2019
 
       - name: Npm Install
         run: npm install
@@ -45,14 +48,17 @@ jobs:
 
   build-windows32:
     name: Build Windows x86
-    runs-on: windows-latest
+    runs-on: windows-2019
     steps:
       - uses: actions/checkout@v4
 
       - name: Use Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '14.x'
+          node-version: '14.21.3'
+
+      - name: Configure node-gyp
+        run: npm config set msvs_version 2019
 
       - name: Npm Install
         run: npm install
@@ -80,7 +86,7 @@ jobs:
       - name: Use Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '14.x'
+          node-version: '14.21.3'
 
       - name: Npm Install
         run: npm install
@@ -109,10 +115,17 @@ jobs:
       - name: Use Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '14.x'
+          node-version: '14.21.3'
+
+      - name: Install Linux build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y python3 make g++ libudev-dev libusb-1.0-0-dev rpm
 
       - name: Npm Install
-        run: npm install
+        run: |
+          npm config set python python3
+          npm install
 
       - name: Build Dist
         run: npm run dist
