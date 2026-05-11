@@ -29,7 +29,11 @@ jobs:
       - name: Configure node-gyp
         shell: pwsh
         run: |
+          npm install --global node-gyp@9
+          $nodeGyp = (Get-Command node-gyp).Source
+          npm config set node_gyp "$nodeGyp"
           npm config set msvs_version 2022
+          "npm_config_node_gyp=$nodeGyp" >> $env:GITHUB_ENV
           "GYP_MSVS_VERSION=2022" >> $env:GITHUB_ENV
           "npm_config_msvs_version=2022" >> $env:GITHUB_ENV
 
@@ -64,7 +68,11 @@ jobs:
       - name: Configure node-gyp
         shell: pwsh
         run: |
+          npm install --global node-gyp@9
+          $nodeGyp = (Get-Command node-gyp).Source
+          npm config set node_gyp "$nodeGyp"
           npm config set msvs_version 2022
+          "npm_config_node_gyp=$nodeGyp" >> $env:GITHUB_ENV
           "GYP_MSVS_VERSION=2022" >> $env:GITHUB_ENV
           "npm_config_msvs_version=2022" >> $env:GITHUB_ENV
 
