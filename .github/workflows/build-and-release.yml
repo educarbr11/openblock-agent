@@ -17,7 +17,7 @@ permissions:
 jobs:
   build-windows:
     name: Build Windows x64
-    runs-on: windows-2019
+    runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
 
@@ -27,7 +27,11 @@ jobs:
           node-version: '14.21.3'
 
       - name: Configure node-gyp
-        run: npm config set msvs_version 2019
+        shell: pwsh
+        run: |
+          npm config set msvs_version 2022
+          "GYP_MSVS_VERSION=2022" >> $env:GITHUB_ENV
+          "npm_config_msvs_version=2022" >> $env:GITHUB_ENV
 
       - name: Npm Install
         run: npm install
@@ -48,7 +52,7 @@ jobs:
 
   build-windows32:
     name: Build Windows x86
-    runs-on: windows-2019
+    runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
 
@@ -58,7 +62,11 @@ jobs:
           node-version: '14.21.3'
 
       - name: Configure node-gyp
-        run: npm config set msvs_version 2019
+        shell: pwsh
+        run: |
+          npm config set msvs_version 2022
+          "GYP_MSVS_VERSION=2022" >> $env:GITHUB_ENV
+          "npm_config_msvs_version=2022" >> $env:GITHUB_ENV
 
       - name: Npm Install
         run: npm install
