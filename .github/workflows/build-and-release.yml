@@ -117,14 +117,19 @@ jobs:
         with:
           node-version: '14.21.3'
 
+      - name: Use Python 3.10
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
       - name: Install Linux build dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y python3 make g++ libudev-dev libusb-1.0-0-dev rpm
+          sudo apt-get install -y make g++ libudev-dev libusb-1.0-0-dev rpm
 
       - name: Npm Install
         run: |
-          npm config set python python3
+          npm config set python "$pythonLocation/bin/python"
           npm install
 
       - name: Build Dist
