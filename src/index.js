@@ -369,7 +369,7 @@ const createWindow = () => {
 
 
     appTray = new Tray(nativeImage.createFromPath(path.join(__dirname, './icon/OpenBlock-Link.ico')));
-    appTray.setToolTip('Openblock Link');
+    appTray.setToolTip('DoGoBlock Agent');
     appTray.setContextMenu(Menu.buildFromTemplate(makeTrayMenu(locale)));
 
     appTray.on('click', () => {

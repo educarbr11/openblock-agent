@@ -3,10 +3,10 @@ directories:
   output: dist
 extraResources: ["tools", "external-resources", 'firmwares', "statics", "drivers"]
 
-appId: 'openblock.cc.openblock-agent'
-productName: "OpenBlock Agent"
+appId: 'br.com.dogoblock.agent'
+productName: "DoGoBlock Agent"
 publish: # empty provider list = don't publish
-artifactName: "OpenBlock-Agent_v${version}_${os}_${arch}.${ext}"
+artifactName: "DoGoBlock-Agent_v${version}_${os}_${arch}.${ext}"
 
 mac:
   category: public.app-category.education
@@ -19,7 +19,7 @@ mac:
     - dmg
     # - mas
 dmg:
-  title: "OpenBlock Agent ${version}"
+  title: "DoGoBlock Agent ${version}"
 # mas:
 #   category: public.app-category.education
 #   entitlements: buildResources/entitlements.mas.plist
@@ -46,13 +46,15 @@ nsis:
 linux:
   category: Education
   icon: buildResources/linux
+  maintainer: DoGoBlock Team <contato@dogoblock.com.br>
   desktop:
     - Encoding: UTF-8
-    - Name: OpenBlockAgent
-    - Icon: openblock-agent
+    - Name: DoGoBlockAgent
+    - Icon: dogoblock-agent
     - Type: Application
     - Terminal: false
   target:
+    - AppImage
     - deb
 
 deb:
