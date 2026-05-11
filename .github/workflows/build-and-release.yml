@@ -30,7 +30,7 @@ jobs:
         shell: pwsh
         run: |
           npm install --global node-gyp@9
-          $nodeGyp = (Get-Command node-gyp).Source
+          $nodeGyp = Join-Path (npm root -g) 'node-gyp/bin/node-gyp.js'
           npm config set node_gyp "$nodeGyp"
           npm config set msvs_version 2022
           "npm_config_node_gyp=$nodeGyp" >> $env:GITHUB_ENV
@@ -69,7 +69,7 @@ jobs:
         shell: pwsh
         run: |
           npm install --global node-gyp@9
-          $nodeGyp = (Get-Command node-gyp).Source
+          $nodeGyp = Join-Path (npm root -g) 'node-gyp/bin/node-gyp.js'
           npm config set node_gyp "$nodeGyp"
           npm config set msvs_version 2022
           "npm_config_node_gyp=$nodeGyp" >> $env:GITHUB_ENV
