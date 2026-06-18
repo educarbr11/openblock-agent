@@ -1,7 +1,8 @@
 directories:
   buildResources: buildResources
   output: dist
-extraResources: ["tools", "external-resources", 'firmwares', "statics", "drivers"]
+extraFiles: ["tools", "external-resources", "firmwares", "drivers"]
+compression: maximum
 
 appId: 'br.com.dogoblock.agent'
 productName: "DoGoBlock Agent"
@@ -31,7 +32,9 @@ win:
   icon: buildResources/OpenblockAgent.ico
   target:
     # - appx
-    - nsis
+    - target: nsis
+      arch:
+        - x64
 # appx:
 #   identityName: OpenBlock.OpenblockAgent
 #   publisherDisplayName: "OpenBlock"
@@ -47,12 +50,6 @@ linux:
   category: Education
   icon: buildResources/linux
   maintainer: DoGoBlock Team <contato@dogoblock.com.br>
-  desktop:
-    - Encoding: UTF-8
-    - Name: DoGoBlockAgent
-    - Icon: dogoblock-agent
-    - Type: Application
-    - Terminal: false
   target:
     - AppImage
     - deb
