@@ -15,13 +15,13 @@ permissions:
   contents: write
 
 env:
-  NODE_VERSION: '20'
+  NODE_VERSION: '22'
   CSC_IDENTITY_AUTO_DISCOVERY: false
 
 jobs:
   build-windows:
     name: Build Windows x64
-    runs-on: windows-latest
+    runs-on: windows-2022
     steps:
       - uses: actions/checkout@v4
 
