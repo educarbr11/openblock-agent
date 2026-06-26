@@ -10,6 +10,16 @@ on:
       - 'CHANGE.md'
       - 'doc/*'
   workflow_dispatch:
+    inputs:
+      release_tag:
+        description: 'Tag da release a publicar, por exemplo v1.0.7. Deixe vazio para apenas gerar artifacts.'
+        required: false
+        type: string
+      draft:
+        description: 'Criar a release como rascunho'
+        required: false
+        default: true
+        type: boolean
 
 permissions:
   contents: write
@@ -149,9 +159,28 @@ jobs:
     needs:
       - build-windows
       - build-linux
-    if: ${{ startsWith(github.ref, 'refs/tags/v') }}
+    if: ${{ startsWith(github.ref, 'refs/tags/v') || (github.event_name == 'workflow_dispatch' && inputs.release_tag != '') }}
     runs-on: ubuntu-latest
     steps:
+      - name: Resolve release metadata
+        id: release
+        shell: bash
+        run: |
+          if [[ "${GITHUB_REF}" == refs/tags/v* ]]; then
+            echo "tag=${GITHUB_REF_NAME}" >> "$GITHUB_OUTPUT"
+          elif [[ -n "${{ inputs.release_tag }}" ]]; then
+            echo "tag=${{ inputs.release_tag }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "Release tag was not provided" >&2
+            exit 1
+          fi
+
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            echo "draft=${{ inputs.draft }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "draft=true" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Download all build results
         uses: actions/download-artifact@v4
         with:
@@ -166,8 +195,9 @@ jobs:
       - name: Publish release
         uses: softprops/action-gh-release@v2
         with:
-          name: DoGoBlock Agent ${{ github.ref_name }}
-          draft: true
+          tag_name: ${{ steps.release.outputs.tag }}
+          name: DoGoBlock Agent ${{ steps.release.outputs.tag }}
+          draft: ${{ steps.release.outputs.draft }}
           prerelease: false
           files: |
             release-assets/**/*.exe
