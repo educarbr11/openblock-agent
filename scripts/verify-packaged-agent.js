@@ -6,7 +6,6 @@ const root = path.resolve(__dirname, '..');
 const dist = path.join(root, 'dist');
 
 const requiredRuntimeFiles = [
-    '/node_modules/openblock-link/src/session/serialport.js',
     '/node_modules/serialport/dist/index.js',
     '/node_modules/@serialport/stream/dist/index.js',
     '/node_modules/@serialport/bindings-cpp/dist/index.js',
