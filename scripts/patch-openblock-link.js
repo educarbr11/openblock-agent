@@ -147,6 +147,8 @@ const patchArduinoUploader = () => {
 const patchLinkPackage = () => {
     const file = path.join(linkRoot, 'package.json');
     const pkg = JSON.parse(fs.readFileSync(file, 'utf8'));
+    pkg.dependencies = pkg.dependencies || {};
+    pkg.dependencies['adm-zip'] = pkg.dependencies['adm-zip'] || '^0.5.17';
     [
         '7zip-bin',
         '@abandonware/noble',
@@ -157,8 +159,7 @@ const patchLinkPackage = () => {
         'install',
         'node-7z',
         'os',
-        'usb',
-        'adm-zip'
+        'usb'
     ].forEach(dep => {
         if (pkg.dependencies) {
             delete pkg.dependencies[dep];
@@ -170,14 +171,15 @@ const patchLinkPackage = () => {
 const patchLinkIndex = () => {
     const file = path.join(linkRoot, 'src', 'index.js');
     let source = fs.readFileSync(file, 'utf8');
-    source = source.replace(
-        "    '/openblock/ble': require('./session/ble') // eslint-disable-line global-require\n",
-        ''
-    );
-    source = source.replace(
-        "    '/openblock/serialport': require('./session/serialport'), // eslint-disable-line global-require\n}",
-        "    '/openblock/serialport': require('./session/serialport') // eslint-disable-line global-require\n}"
-    );
+    if (!source.includes("'/openblock/ble'")) {
+        source = replaceOnce(
+            source,
+            "    '/openblock/serialport': require('./session/serialport') // eslint-disable-line global-require\n}",
+            "    '/openblock/serialport': require('./session/serialport'), // eslint-disable-line global-require\n" +
+                "    '/openblock/ble': require('./session/ble') // eslint-disable-line global-require\n}",
+            'BLE route'
+        );
+    }
     fs.writeFileSync(file, source);
 };
 
