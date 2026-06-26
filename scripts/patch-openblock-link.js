@@ -23,10 +23,15 @@ const patchArduinoUploader = () => {
     );
 
     if (!source.includes('_getAvrdudePaths')) {
-        source = replaceOnce(
-            source,
-            '    _flashWithFqbn (fqbn, firmwarePath = null) {',
-            `    _getAvrdudePaths () {
+        const directUploadMethods = `    _getUploadFqbns () {
+        const fallbackFqbns = Array.isArray(this._config.uploadFallbackFqbns) ?
+            this._config.uploadFallbackFqbns : [];
+        return [this._config.fqbn].concat(fallbackFqbns).filter((fqbn, index, fqbns) =>
+            fqbn && fqbns.indexOf(fqbn) === index
+        );
+    }
+
+    _getAvrdudePaths () {
         const candidateRoots = [
             path.join(this._arduinoPath, '..', 'avrdude'),
             path.join(this._arduinoPath, 'packages', 'arduino', 'tools', 'avrdude', '6.3.0-arduino17')
@@ -91,9 +96,22 @@ const patchArduinoUploader = () => {
         });
     }
 
-    _flashWithFqbn (fqbn, firmwarePath = null) {`,
-            'avrdude direct methods'
-        );
+`;
+        if (source.includes('    _flashWithFqbn (fqbn, firmwarePath = null) {')) {
+            source = replaceOnce(
+                source,
+                '    _flashWithFqbn (fqbn, firmwarePath = null) {',
+                `${directUploadMethods}    _flashWithFqbn (fqbn, firmwarePath = null) {`,
+                'avrdude direct methods'
+            );
+        } else {
+            source = replaceOnce(
+                source,
+                '    async flash (firmwarePath = null) {',
+                `${directUploadMethods}    async flash (firmwarePath = null) {`,
+                'avrdude direct methods'
+            );
+        }
     }
 
     if (!source.includes('async flashArtifact')) {
