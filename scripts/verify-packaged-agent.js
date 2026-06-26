@@ -5,7 +5,7 @@ const asar = require('@electron/asar');
 const root = path.resolve(__dirname, '..');
 const dist = path.join(root, 'dist');
 
-const requiredAsarFiles = [
+const requiredRuntimeFiles = [
     '/node_modules/openblock-link/src/session/serialport.js',
     '/node_modules/serialport/dist/index.js',
     '/node_modules/@serialport/stream/dist/index.js',
@@ -33,14 +33,15 @@ const verifyApp = appDir => {
     const appName = path.basename(appDir);
     const archive = path.join(appDir, 'resources', 'app.asar');
     const entries = new Set(asar.listPackage(archive));
+    const unpackedRoot = path.join(appDir, 'resources', 'app.asar.unpacked');
 
-    for (const file of requiredAsarFiles) {
-        if (!entries.has(file)) {
-            fail(`${appName}: missing ${file} in app.asar`);
+    for (const file of requiredRuntimeFiles) {
+        const unpackedTarget = path.join(unpackedRoot, ...file.replace(/^\//, '').split('/'));
+        if (!entries.has(file) && !fs.existsSync(unpackedTarget)) {
+            fail(`${appName}: missing ${file} in app.asar or app.asar.unpacked`);
         }
     }
 
-    const unpackedRoot = path.join(appDir, 'resources', 'app.asar.unpacked');
     for (const file of requiredUnpackedFiles) {
         const target = path.join(unpackedRoot, file);
         if (!fs.existsSync(target)) {
