@@ -1,7 +1,7 @@
 {
   "name": "openblock-agent",
   "productName": "DoGoBlock Agent",
-  "version": "1.0.7",
+  "version": "1.0.8",
   "description": "DoGoBlock agent provides link and resource services for the online editor",
   "main": "src/index.js",
   "author": "DoGoBlock Team",
@@ -18,6 +18,7 @@
     "start": "electron .",
     "build": "electron-builder",
     "build:pack": "electron-builder --dir",
+    "verify:package": "node scripts/verify-packaged-agent.js",
     "dist": "npm run clean && npm run fetch:all && electron-builder",
     "clean": "rimraf ./dist ./external-resources ./tools ./firmwares ./drivers",
     "lint": "eslint ./src",
