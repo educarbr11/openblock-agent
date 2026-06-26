@@ -7,7 +7,6 @@ files:
   - "!**/.git/**"
   - "!**/.github/**"
   - "!**/.vscode/**"
-  - "!dist/**"
   - "!scripts/**"
   - "!translations/**"
   - "!local-resources/**"
