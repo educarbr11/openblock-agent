@@ -5,14 +5,9 @@ const path = require('path');
 const os = require('os');
 const {execFile} = require('child_process');
 const fs = require('fs');
-const compareVersions = require('compare-versions');
-const del = require('del');
 
 const OpenBlockLink = require('openblock-link');
-const OpenblockResourceServer = require('openblock-resource');
 
-const formatMessage = require('format-message');
-const locales = require('openblock-l10n/locales/link-desktop-msgs');
 const osLocale = require('os-locale');
 
 const {productName, version} = require('../package.json');
@@ -23,26 +18,74 @@ const nodeStorage = new JSONStorage(app.getPath('userData'));
 const Menu = electron.Menu;
 const Tray = electron.Tray;
 const LINK_PORT = 20111;
-const RESOURCE_PORT = 20112;
 const SERVER_HOST = '0.0.0.0';
 
 let mainWindow;
 let appTray;
 let locale = osLocale.sync();
-let resourceServer;
 let resourcePath;
 let dataPath;
 let makeTrayMenu = () => {};
+
+const translations = {
+    en: {
+        'index.messageBox.operationFailed': 'Operation failed',
+        'index.menu.setLanguage': 'set language',
+        'index.menu.learCacheAndRestart': 'clear cache and restart',
+        'index.menu.installDiver': 'install driver',
+        'index.menu.exit': 'exit'
+    },
+    'pt-br': {
+        'index.messageBox.operationFailed': 'Operacao falhou',
+        'index.menu.setLanguage': 'definir idioma',
+        'index.menu.learCacheAndRestart': 'limpar cache e reiniciar',
+        'index.menu.installDiver': 'instalar driver',
+        'index.menu.exit': 'sair'
+    },
+    'zh-cn': {
+        'index.messageBox.operationFailed': '操作失败',
+        'index.menu.setLanguage': '设置语言',
+        'index.menu.learCacheAndRestart': '清除缓存并重启',
+        'index.menu.installDiver': '安装驱动',
+        'index.menu.exit': '退出'
+    }
+};
+
+const normalizeLocale = l => {
+    const normalized = String(l || 'en').toLowerCase();
+    if (normalized === 'zh-cn' || normalized === 'zh-hans') return 'zh-cn';
+    if (normalized === 'pt-br' || normalized === 'pt') return 'pt-br';
+    return 'en';
+};
+
+const t = (id, fallback) => {
+    const messages = translations[normalizeLocale(locale)] || translations.en;
+    return messages[id] || translations.en[id] || fallback;
+};
+
+const compareVersionParts = (a, b) => {
+    const aParts = String(a || '0').split('.').map(part => parseInt(part, 10) || 0);
+    const bParts = String(b || '0').split('.').map(part => parseInt(part, 10) || 0);
+    const length = Math.max(aParts.length, bParts.length);
+    for (let i = 0; i < length; i++) {
+        const diff = (aParts[i] || 0) - (bParts[i] || 0);
+        if (diff !== 0) return diff;
+    }
+    return 0;
+};
+
+const removePath = targetPath => {
+    fs.rmSync(targetPath, {
+        force: true,
+        recursive: true
+    });
+};
 
 const showOperationFailedMessageBox = err => {
     dialog.showMessageBox({
         type: 'error',
         buttons: ['Ok'],
-        message: formatMessage({
-            id: 'index.messageBox.operationFailed',
-            default: 'Operation failed',
-            description: 'Prompt for operation failed'
-        }),
+        message: t('index.messageBox.operationFailed', 'Operation failed'),
         detail: err
     });
 };
@@ -59,29 +102,26 @@ const reportServerError = (serverName, err) => {
 };
 
 const handleClickLanguage = l => {
-    locale = l;
-    formatMessage.setup({
-        locale: locale,
-        translations: locales
-    });
-
+    locale = normalizeLocale(l);
     appTray.setContextMenu(Menu.buildFromTemplate(makeTrayMenu(locale)));
 };
 
 
 makeTrayMenu = l => [
     {
-        label: formatMessage({
-            id: 'index.menu.setLanguage',
-            default: 'set language',
-            description: 'Lable in menu item to set language'
-        }),
+        label: t('index.menu.setLanguage', 'set language'),
         submenu: [
             {
                 label: 'English',
                 type: 'radio',
                 click: () => handleClickLanguage('en'),
                 checked: l === 'en'
+            },
+            {
+                label: 'Portugues',
+                type: 'radio',
+                click: () => handleClickLanguage('pt-br'),
+                checked: l === 'pt-br'
             },
             {
                 label: '简体中文',
@@ -92,13 +132,9 @@ makeTrayMenu = l => [
         ]
     },
     {
-        label: formatMessage({
-            id: 'index.menu.learCacheAndRestart',
-            default: 'clear cache and restart',
-            description: 'Menu item to clear cache and restart'
-        }),
+        label: t('index.menu.learCacheAndRestart', 'clear cache and restart'),
         click: () => {
-            del.sync(dataPath, {force: true});
+            removePath(dataPath);
             app.relaunch();
             app.exit();
         }
@@ -107,11 +143,7 @@ makeTrayMenu = l => [
         type: 'separator'
     },
     {
-        label: formatMessage({
-            id: 'index.menu.installDiver',
-            default: 'install driver',
-            description: 'Menu item to install driver'
-        }),
+        label: t('index.menu.installDiver', 'install driver'),
         click: () => {
             const driverPath = path.join(resourcePath, 'drivers');
             if ((os.platform() === 'win32') && (os.arch() === 'x64')) {
@@ -125,11 +157,7 @@ makeTrayMenu = l => [
         type: 'separator'
     },
     {
-        label: formatMessage({
-            id: 'index.menu.exit',
-            default: 'exit',
-            description: 'Menu item to exit'
-        }),
+        label: t('index.menu.exit', 'exit'),
         click: () => {
             appTray.destroy();
             mainWindow.destroy();
@@ -170,15 +198,7 @@ const createWindow = () => {
     mainWindow.loadFile('./src/index.html');
     mainWindow.setMenu(null);
 
-    if (locale === 'zh-CN') {
-        locale = 'zh-cn';
-    } else if (locale === 'zh-TW') {
-        locale = 'zh-tw';
-    }
-    formatMessage.setup({
-        locale: locale,
-        translations: locales
-    });
+    locale = normalizeLocale(locale);
 
     const webContents = mainWindow.webContents;
     webContents.on('before-input-event', (event, input) => {
@@ -216,9 +236,9 @@ const createWindow = () => {
     // new version into the cache file.
     const oldVersion = nodeStorage.getItem('version');
     if (oldVersion) {
-        if (compareVersions.compare(appVersion, oldVersion, '>')) {
+        if (compareVersionParts(appVersion, oldVersion) > 0) {
             if (fs.existsSync(dataPath)) {
-                del.sync([dataPath], {force: true});
+                removePath(dataPath);
             }
             nodeStorage.setItem('version', appVersion);
         }
@@ -236,12 +256,6 @@ const createWindow = () => {
     const link = new OpenBlockLink(dataPath, path.join(resourcePath, 'tools'));
     link.on('error', err => reportServerError('OpenBlock Link', err));
     link.listen(LINK_PORT, SERVER_HOST);
-
-    // start resource server
-    resourceServer = new OpenblockResourceServer(dataPath, path.join(resourcePath, 'external-resources'));
-    resourceServer.on('error', err => reportServerError('OpenBlock Resource', err));
-    resourceServer.listen(RESOURCE_PORT, SERVER_HOST);
-
 
     appTray = new Tray(nativeImage.createFromPath(path.join(__dirname, './icon/OpenBlock-Link.ico')));
     appTray.setToolTip('DoGoBlock Agent');

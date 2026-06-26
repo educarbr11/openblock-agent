@@ -15,8 +15,9 @@ permissions:
   contents: write
 
 env:
-  NODE_VERSION: '22'
+  NODE_VERSION: '22.23.0'
   CSC_IDENTITY_AUTO_DISCOVERY: false
+  MAX_AGENT_ARTIFACT_MB: '250'
 
 jobs:
   build-windows:
@@ -43,16 +44,35 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Verify lightweight resources before build
+        shell: pwsh
+        run: |
+          npm run prune:agent -- --dry-run
+          node -e "const fs=require('fs'); const pkg=require('./package.json'); console.log('Building DoGoBlock Agent ' + pkg.version); if (fs.existsSync('external-resources')) process.exitCode=1;"
+
       - name: Build Dist
         run: npm run dist
         env:
           NODE_ENV: production
           NODE_OPTIONS: --max_old_space_size=8192
 
+      - name: Verify artifact size
+        shell: pwsh
+        run: |
+          $limit = [int]$env:MAX_AGENT_ARTIFACT_MB * 1024 * 1024
+          $files = Get-ChildItem dist -Filter "DoGoBlock-Agent_v*.exe"
+          if ($files.Count -eq 0) { throw "Windows artifact was not generated" }
+          foreach ($file in $files) {
+            Write-Host "$($file.Name): $([math]::Round($file.Length / 1MB, 2)) MB"
+            if ($file.Length -gt $limit) {
+              throw "$($file.Name) exceeds $env:MAX_AGENT_ARTIFACT_MB MB"
+            }
+          }
+
       - name: Archive production artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: DoGoBlockAgent-win-x64
+          name: DoGoBlockAgent-win-x64-${{ github.sha }}
           path: dist/DoGoBlock-Agent_v*.exe
           retention-days: 1
           if-no-files-found: error
@@ -82,16 +102,42 @@ jobs:
       - name: Install dependencies
         run: npm_config_python="$pythonLocation/bin/python" npm ci
 
+      - name: Verify lightweight resources before build
+        run: |
+          npm run prune:agent -- --dry-run
+          node -e "const fs=require('fs'); const pkg=require('./package.json'); console.log('Building DoGoBlock Agent ' + pkg.version); if (fs.existsSync('external-resources')) process.exitCode=1;"
+
       - name: Build Dist
         run: npm run dist
         env:
           NODE_ENV: production
           NODE_OPTIONS: --max_old_space_size=8192
 
+      - name: Verify artifact size
+        run: |
+          node <<'NODE'
+          const fs = require('fs');
+          const path = require('path');
+          const limit = Number(process.env.MAX_AGENT_ARTIFACT_MB) * 1024 * 1024;
+          const files = fs.readdirSync('dist')
+            .filter(name => /^DoGoBlock-Agent_v.*\.(AppImage|deb)$/.test(name))
+            .map(name => path.join('dist', name));
+          if (!files.length) {
+            throw new Error('Linux artifacts were not generated');
+          }
+          for (const file of files) {
+            const size = fs.statSync(file).size;
+            console.log(`${path.basename(file)}: ${(size / 1024 / 1024).toFixed(2)} MB`);
+            if (size > limit) {
+              throw new Error(`${path.basename(file)} exceeds ${process.env.MAX_AGENT_ARTIFACT_MB} MB`);
+            }
+          }
+          NODE
+
       - name: Archive production artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: DoGoBlockAgent-linux
+          name: DoGoBlockAgent-linux-${{ github.sha }}
           path: |
             dist/DoGoBlock-Agent_v*.AppImage
             dist/DoGoBlock-Agent_v*.deb

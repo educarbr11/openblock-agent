@@ -4,15 +4,7 @@ const path = require('path');
 const root = path.resolve(__dirname, '..');
 const dryRun = process.argv.includes('--dry-run');
 
-const allowedArduinoPackages = new Set(['arduino', 'builtin', 'esp32']);
-const allowedArduinoHardware = new Set(['avr', 'renesas_uno']);
-const allowedExternalExtensions = new Set(['displayLcd', 'ledMatrix']);
-const allowedArduinoFirmwares = new Set(['arduinoUno.hex']);
-const allowedMicroPythonFirmwares = new Set([
-    'ESP32_GENERIC-20250415-v1.25.0.bin',
-    'esp32-20220618-v1.19.1.bin'
-]);
-
+const allowedArduinoFirmwares = new Set(['arduinoUno.hex', 'arduinoUnoUltra.hex']);
 const removePath = target => {
     if (!fs.existsSync(target)) return;
     const relative = path.relative(root, target);
@@ -46,20 +38,9 @@ const keepOnlyChildren = (dir, allowedNames) => {
     }
 };
 
-const copyLocalExternalExtensions = () => {
-    const sourceRoot = path.join(root, 'local-resources', 'extensions');
-    const targetRoot = path.join(root, 'external-resources', 'extensions');
-    if (!fs.existsSync(sourceRoot)) return;
-    if (!dryRun) {
-        fs.mkdirSync(targetRoot, {recursive: true});
-    }
-    for (const extensionId of allowedExternalExtensions) {
-        copyPath(path.join(sourceRoot, extensionId), path.join(targetRoot, extensionId));
-    }
-};
-
 const pruneArduinoTools = () => {
-    const arduinoRoot = path.join(root, 'tools', 'Arduino');
+    const toolsRoot = path.join(root, 'tools');
+    const arduinoRoot = path.join(toolsRoot, 'Arduino');
     if (fs.existsSync(path.join(root, 'tools'))) {
         for (const child of fs.readdirSync(path.join(root, 'tools'))) {
             if (child.endsWith('.7z')) {
@@ -67,21 +48,19 @@ const pruneArduinoTools = () => {
             }
         }
     }
-    keepOnlyChildren(path.join(arduinoRoot, 'packages'), allowedArduinoPackages);
-    keepOnlyChildren(path.join(arduinoRoot, 'packages', 'arduino', 'hardware'), allowedArduinoHardware);
-};
 
-const pruneExternalResources = () => {
-    copyLocalExternalExtensions();
-    keepOnlyChildren(path.join(root, 'external-resources', 'extensions'), allowedExternalExtensions);
-    removePath(path.join(root, 'external-resources', 'devices'));
+    const avrdudeRoot = path.join(arduinoRoot, 'packages', 'arduino', 'tools', 'avrdude', '6.3.0-arduino17');
+    const lightAvrdudeRoot = path.join(toolsRoot, 'avrdude');
+    copyPath(avrdudeRoot, lightAvrdudeRoot);
+    removePath(arduinoRoot);
+    removePath(path.join(toolsRoot, 'Python'));
+    removePath(path.join(root, 'external-resources'));
 };
 
 const pruneFirmwares = () => {
     keepOnlyChildren(path.join(root, 'firmwares', 'arduino'), allowedArduinoFirmwares);
-    keepOnlyChildren(path.join(root, 'firmwares', 'microPython'), allowedMicroPythonFirmwares);
+    removePath(path.join(root, 'firmwares', 'microPython'));
 };
 
 pruneArduinoTools();
-pruneExternalResources();
 pruneFirmwares();

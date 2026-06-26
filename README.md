@@ -1,35 +1,60 @@
 # DoGoBlock Agent
 
-[![Build and release](https://github.com/educarbr11/openblock-agent/actions/workflows/build-and-release.yml/badge.svg)](https://github.com/educarbr11/openblock-agent/actions/workflows/build-and-release.yml) ![GitHub release (latest by date)](https://img.shields.io/github/v/release/educarbr11/openblock-agent) ![Total downloads](https://img.shields.io/github/downloads/educarbr11/openblock-agent/total)
+DoGoBlock Agent is the lightweight local companion for Dogoblock Web.
 
-DoGoBlock Agent is an application that provides local hardware connection support for DoGoBlock online web pages.
+It does not compile Arduino code. Compilation runs in `dogoblock-api` through
+the Arduino compiler endpoint. The Agent only keeps the local hardware bridge
+available so the browser can list ports, connect boards and upload compiled
+artifacts.
 
-![screenshot1](./docs/screenshot1.png)
+## Architecture
 
-![screenshot2](./docs/screenshot2.png)
+- Dogoblock Web generates Arduino code from blocks.
+- Dogoblock API compiles the code and returns a temporary `.hex` artifact.
+- Dogoblock Agent receives the compiled artifact through OpenBlock Link.
+- OpenBlock Link writes the artifact to the board through the local serial port.
 
-## Getting Start
+The Agent exposes only the local Link server:
 
-Visit the wiki: https://wiki.openblock.cc
+```text
+http://127.0.0.1:20111/
+ws://127.0.0.1:20111/openblock/serialport
+```
 
-## Join chat
+The old resource server on `20112` is no longer part of the Agent. Web editor
+resources such as LCD and LED Matrix extensions are served by `openblock-gui`
+from `/static/device-extensions`.
 
-- Gitter: [https://gitter.im/openblockcc/community](https://gitter.im/openblockcc/community?utm_source=share-link&utm_medium=link&utm_campaign=share-link)
+## Supported Upload Flow
 
-- QQ 群 (for chinese): 933484739
+Initial lightweight support focuses on Arduino AVR boards:
 
-## Donate
+- Arduino Uno
+- Arduino Nano
+- Arduino Leonardo
 
-Buy me a cup of coffee.
+The compiler API is responsible for board-specific compilation. The Agent uses
+the compiled `.hex` and uploads it with the local AVR uploader.
 
-- Ko-fi (PayPal):
+## Development
 
-    [![ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/X8X66DATO)
+Install dependencies:
 
-- 支付宝:
+```bash
+npm install
+```
 
-    ![alipayQRCode](./docs/alipayQRCode.png)
+Run locally:
 
-## Bug Report
+```bash
+npm start
+```
 
-You can submit the bug log in issues of this project.
+Build a distributable:
+
+```bash
+npm run dist
+```
+
+During packaging, resources are pruned so only the local connection server,
+drivers, minimal firmware files and the AVR uploader are included.

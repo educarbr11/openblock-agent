@@ -1,7 +1,23 @@
 directories:
   buildResources: buildResources
   output: dist
-extraFiles: ["tools", "external-resources", "firmwares", "drivers"]
+files:
+  - src/**/*
+  - package.json
+  - "!**/.git/**"
+  - "!**/.github/**"
+  - "!**/.vscode/**"
+  - "!**/dist/**"
+  - "!**/scripts/**"
+  - "!**/translations/**"
+  - "!**/local-resources/**"
+  - "!**/external-resources/**"
+  - "!**/tools/**"
+  - "!**/firmwares/**"
+  - "!**/drivers/**"
+  - "!**/tmp/**"
+  - "!**/*.map"
+extraFiles: ["tools", "firmwares", "drivers"]
 compression: maximum
 
 appId: 'br.com.dogoblock.agent'
