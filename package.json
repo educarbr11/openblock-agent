@@ -1,7 +1,7 @@
 {
   "name": "openblock-agent",
   "productName": "DoGoBlock Agent",
-  "version": "1.0.24",
+  "version": "1.0.25",
   "description": "DoGoBlock agent provides link and resource services for the online editor",
   "main": "src/index.js",
   "author": "DoGoBlock Team",
@@ -44,6 +44,7 @@
   "dependencies": {
     "@serialport/bindings-cpp": "10.7.0",
     "@serialport/stream": "10.3.0",
+    "dbus-next": "0.10.2",
     "node-localstorage": "^2.2.1",
     "openblock-link": "https://github.com/educarbr11/openblock-link-dogo/archive/053c19e9c905652009296d30ba5769f96567e817.tar.gz",
     "os-locale": "^5.0.0"
