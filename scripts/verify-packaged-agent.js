@@ -70,10 +70,18 @@ const readPackageJson = (archive, unpackedRoot, entry) => {
 
 const findUnpackedApps = () => {
     if (!fs.existsSync(dist)) return [];
-    return fs.readdirSync(dist)
-        .filter(name => name.endsWith('-unpacked'))
-        .map(name => path.join(dist, name))
-        .filter(appDir => fs.existsSync(path.join(appDir, 'resources', 'app.asar')));
+    return walkFiles(dist)
+        .filter(file => path.basename(file) === 'app.asar' && path.basename(path.dirname(file)) === 'resources')
+        .map(file => path.dirname(path.dirname(file)))
+        .filter((appDir, index, appDirs) => appDirs.indexOf(appDir) === index);
+};
+
+const describeDist = () => {
+    if (!fs.existsSync(dist)) return 'dist directory does not exist';
+    return walkFiles(dist)
+        .slice(0, 40)
+        .map(file => path.relative(root, file))
+        .join('\n');
 };
 
 const verifyApp = appDir => {
@@ -123,7 +131,7 @@ const verifyApp = appDir => {
 
 const apps = findUnpackedApps();
 if (!apps.length) {
-    fail('No packaged app found in dist/*-unpacked');
+    fail(`No packaged app found in dist/**/resources/app.asar. Dist contents:\n${describeDist()}`);
 }
 
 apps.forEach(verifyApp);
