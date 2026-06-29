@@ -171,6 +171,17 @@ const patchLinkPackage = () => {
     fs.writeFileSync(file, `${JSON.stringify(pkg, null, 2)}\n`);
 };
 
+const copySerialportRuntimeIntoLink = () => {
+    const source = path.join(__dirname, '..', 'node_modules', '@serialport');
+    const target = path.join(linkRoot, 'node_modules', '@serialport');
+    if (!fs.existsSync(source)) {
+        throw new Error('Could not patch openblock-link: missing @serialport runtime packages');
+    }
+    fs.rmSync(target, {recursive: true, force: true});
+    fs.mkdirSync(path.dirname(target), {recursive: true});
+    fs.cpSync(source, target, {recursive: true});
+};
+
 const patchLinkIndex = () => {
     const file = path.join(linkRoot, 'src', 'index.js');
     let source = fs.readFileSync(file, 'utf8');
@@ -202,21 +213,54 @@ const patchSerialportSession = () => {
     const file = path.join(linkRoot, 'src', 'session', 'serialport.js');
     let source = fs.readFileSync(file, 'utf8');
 
-    source = replaceOnce(
-        source,
-        "const {SerialPort} = require('serialport');",
-        "const {SerialPortStream} = require('@serialport/stream');\n" +
-            "const {autoDetect} = require('@serialport/bindings-cpp');\n" +
-            'const DetectedBinding = autoDetect();\n' +
-            'class SerialPort extends SerialPortStream {\n' +
-            '    constructor (options, openCallback) {\n' +
-            '        super(Object.assign({binding: DetectedBinding}, options), openCallback);\n' +
-            '    }\n' +
-            '}\n' +
-            'SerialPort.list = DetectedBinding.list;\n' +
-            'SerialPort.binding = DetectedBinding;',
-        'direct @serialport requires'
-    );
+    const serialportRuntimeRequire = "const serialportRuntimePath = require('path');\n" +
+        'const requireSerialportRuntime = packageName => {\n' +
+        '    const packagePathParts = packageName.split(\'/\');\n' +
+        '    const candidates = [packageName];\n' +
+        '    if (process.resourcesPath) {\n' +
+        "        candidates.push(serialportRuntimePath.join(process.resourcesPath, 'app.asar.unpacked', 'node_modules', ...packagePathParts));\n" +
+        '    }\n' +
+        '    let lastError = null;\n' +
+        '    for (const candidate of candidates) {\n' +
+        '        try {\n' +
+        '            return require(candidate); // eslint-disable-line global-require, import/no-dynamic-require\n' +
+        '        } catch (err) {\n' +
+        '            lastError = err;\n' +
+        '        }\n' +
+        '    }\n' +
+        '    throw lastError;\n' +
+        '};\n' +
+        "const {SerialPortStream} = requireSerialportRuntime('@serialport/stream');\n" +
+        "const {autoDetect} = requireSerialportRuntime('@serialport/bindings-cpp');\n" +
+        'const DetectedBinding = autoDetect();\n' +
+        'class SerialPort extends SerialPortStream {\n' +
+        '    constructor (options, openCallback) {\n' +
+        '        super(Object.assign({binding: DetectedBinding}, options), openCallback);\n' +
+        '    }\n' +
+        '}\n' +
+        'SerialPort.list = DetectedBinding.list;\n' +
+        'SerialPort.binding = DetectedBinding;';
+    const legacyDirectSerialportRequire = "const {SerialPortStream} = require('@serialport/stream');\n" +
+        "const {autoDetect} = require('@serialport/bindings-cpp');\n" +
+        'const DetectedBinding = autoDetect();\n' +
+        'class SerialPort extends SerialPortStream {\n' +
+        '    constructor (options, openCallback) {\n' +
+        '        super(Object.assign({binding: DetectedBinding}, options), openCallback);\n' +
+        '    }\n' +
+        '}\n' +
+        'SerialPort.list = DetectedBinding.list;\n' +
+        'SerialPort.binding = DetectedBinding;';
+
+    if (source.includes(legacyDirectSerialportRequire)) {
+        source = source.replace(legacyDirectSerialportRequire, serialportRuntimeRequire);
+    } else {
+        source = replaceOnce(
+            source,
+            "const {SerialPort} = require('serialport');",
+            serialportRuntimeRequire,
+            'direct @serialport requires'
+        );
+    }
 
     source = replaceOnce(
         source,
@@ -262,6 +306,7 @@ const patchSerialportSession = () => {
 };
 
 patchLinkPackage();
+copySerialportRuntimeIntoLink();
 patchLinkIndex();
 patchArduinoUploader();
 patchSerialportSession();

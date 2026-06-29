@@ -1,6 +1,7 @@
 directories:
   buildResources: buildResources
   output: dist
+afterPack: scripts/after-pack.js
 files:
   - src/**/*
   - package.json
