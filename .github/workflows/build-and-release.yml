@@ -60,14 +60,20 @@ jobs:
           npm run prune:agent -- --dry-run
           node -e "const fs=require('fs'); const pkg=require('./package.json'); console.log('Building DoGoBlock Agent ' + pkg.version); if (fs.existsSync('external-resources')) process.exitCode=1;"
 
-      - name: Build Dist
-        run: npm run dist
+      - name: Build unpacked app
+        run: npm run build:pack
         env:
           NODE_ENV: production
           NODE_OPTIONS: --max_old_space_size=8192
 
       - name: Verify packaged app
         run: npm run verify:package
+
+      - name: Build installers
+        run: node scripts/run-electron-builder.js
+        env:
+          NODE_ENV: production
+          NODE_OPTIONS: --max_old_space_size=8192
 
       - name: Verify artifact size
         shell: pwsh
@@ -120,14 +126,20 @@ jobs:
           npm run prune:agent -- --dry-run
           node -e "const fs=require('fs'); const pkg=require('./package.json'); console.log('Building DoGoBlock Agent ' + pkg.version); if (fs.existsSync('external-resources')) process.exitCode=1;"
 
-      - name: Build Dist
-        run: npm run dist
+      - name: Build unpacked app
+        run: npm run build:pack
         env:
           NODE_ENV: production
           NODE_OPTIONS: --max_old_space_size=8192
 
       - name: Verify packaged app
         run: npm run verify:package
+
+      - name: Build installers
+        run: node scripts/run-electron-builder.js
+        env:
+          NODE_ENV: production
+          NODE_OPTIONS: --max_old_space_size=8192
 
       - name: Verify artifact size
         run: |
