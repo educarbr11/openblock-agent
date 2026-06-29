@@ -20,7 +20,7 @@ The Agent exposes only the local Link server:
 http://127.0.0.1:20111/
 ws://127.0.0.1:20111/openblock/serialport
 ```
-
+    
 The old resource server on `20112` is no longer part of the Agent. Web editor
 resources such as LCD and LED Matrix extensions are served by `openblock-gui`
 from `/static/device-extensions`.
