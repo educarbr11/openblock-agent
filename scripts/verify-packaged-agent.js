@@ -5,19 +5,37 @@ const asar = require('@electron/asar');
 const root = path.resolve(__dirname, '..');
 const dist = path.join(root, 'dist');
 
-const requiredRuntimeFiles = [
-    '/node_modules/serialport/dist/index.js',
-    '/node_modules/@serialport/stream/dist/index.js',
-    '/node_modules/@serialport/bindings-cpp/dist/index.js',
-    '/node_modules/@serialport/bindings-cpp/dist/load-bindings.js'
+const requiredRuntimePatterns = [
+    /\/node_modules\/(?:.*\/node_modules\/)?serialport\/dist\/index\.js$/,
+    /\/node_modules\/(?:.*\/node_modules\/)?@serialport\/stream\/dist\/index\.js$/,
+    /\/node_modules\/(?:.*\/node_modules\/)?@serialport\/bindings-cpp\/dist\/index\.js$/,
+    /\/node_modules\/(?:.*\/node_modules\/)?@serialport\/bindings-cpp\/dist\/load-bindings\.js$/
 ];
 
-const requiredUnpackedFiles = [
-    path.join('node_modules', '@serialport', 'bindings-cpp', 'build', 'Release', 'bindings.node')
+const requiredUnpackedPatterns = [
+    /node_modules[\\/](?:.*[\\/]node_modules[\\/])?@serialport[\\/]bindings-cpp[\\/]build[\\/]Release[\\/]bindings\.node$/
 ];
 
 const fail = message => {
     throw new Error(message);
+};
+
+const walkFiles = dir => {
+    if (!fs.existsSync(dir)) return [];
+    const result = [];
+    const stack = [dir];
+    while (stack.length) {
+        const current = stack.pop();
+        for (const entry of fs.readdirSync(current, {withFileTypes: true})) {
+            const fullPath = path.join(current, entry.name);
+            if (entry.isDirectory()) {
+                stack.push(fullPath);
+            } else if (entry.isFile()) {
+                result.push(fullPath);
+            }
+        }
+    }
+    return result;
 };
 
 const findUnpackedApps = () => {
@@ -31,20 +49,21 @@ const findUnpackedApps = () => {
 const verifyApp = appDir => {
     const appName = path.basename(appDir);
     const archive = path.join(appDir, 'resources', 'app.asar');
-    const entries = new Set(asar.listPackage(archive));
+    const entries = asar.listPackage(archive);
     const unpackedRoot = path.join(appDir, 'resources', 'app.asar.unpacked');
+    const unpackedFiles = walkFiles(unpackedRoot);
 
-    for (const file of requiredRuntimeFiles) {
-        const unpackedTarget = path.join(unpackedRoot, ...file.replace(/^\//, '').split('/'));
-        if (!entries.has(file) && !fs.existsSync(unpackedTarget)) {
-            fail(`${appName}: missing ${file} in app.asar or app.asar.unpacked`);
+    for (const pattern of requiredRuntimePatterns) {
+        const foundInAsar = entries.some(file => pattern.test(file));
+        const foundUnpacked = unpackedFiles.some(file => pattern.test(file.replace(/\\/g, '/')));
+        if (!foundInAsar && !foundUnpacked) {
+            fail(`${appName}: missing packaged runtime file matching ${pattern}`);
         }
     }
 
-    for (const file of requiredUnpackedFiles) {
-        const target = path.join(unpackedRoot, file);
-        if (!fs.existsSync(target)) {
-            fail(`${appName}: missing unpacked native module ${file}`);
+    for (const pattern of requiredUnpackedPatterns) {
+        if (!unpackedFiles.some(file => pattern.test(file))) {
+            fail(`${appName}: missing unpacked native module matching ${pattern}`);
         }
     }
 
