@@ -5,7 +5,6 @@ files:
   - src/**/*
   - package.json
   - node_modules/openblock-link/**/*
-  - node_modules/serialport/**/*
   - node_modules/@serialport/**/*
   - "!**/.git/**"
   - "!**/.github/**"

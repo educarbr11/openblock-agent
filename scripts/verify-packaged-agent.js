@@ -6,7 +6,6 @@ const root = path.resolve(__dirname, '..');
 const dist = path.join(root, 'dist');
 
 const requiredPackages = [
-    'serialport',
     '@serialport/stream',
     '@serialport/bindings-cpp'
 ];
@@ -108,7 +107,7 @@ const verifyApp = appDir => {
         }
     }
 
-    console.log(`${appName}: packaged serialport dependencies verified`);
+    console.log(`${appName}: packaged serialport runtime dependencies verified`);
 };
 
 const apps = findUnpackedApps();

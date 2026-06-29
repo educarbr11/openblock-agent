@@ -149,6 +149,8 @@ const patchLinkPackage = () => {
     const pkg = JSON.parse(fs.readFileSync(file, 'utf8'));
     pkg.dependencies = pkg.dependencies || {};
     pkg.dependencies['adm-zip'] = pkg.dependencies['adm-zip'] || '^0.5.17';
+    pkg.dependencies['@serialport/stream'] = pkg.dependencies['@serialport/stream'] || '10.3.0';
+    pkg.dependencies['@serialport/bindings-cpp'] = pkg.dependencies['@serialport/bindings-cpp'] || '10.7.0';
     [
         '7zip-bin',
         '@abandonware/noble',
@@ -159,6 +161,7 @@ const patchLinkPackage = () => {
         'install',
         'node-7z',
         'os',
+        'serialport',
         'usb'
     ].forEach(dep => {
         if (pkg.dependencies) {
@@ -198,6 +201,22 @@ const removeUnusedNativeModules = () => {
 const patchSerialportSession = () => {
     const file = path.join(linkRoot, 'src', 'session', 'serialport.js');
     let source = fs.readFileSync(file, 'utf8');
+
+    source = replaceOnce(
+        source,
+        "const {SerialPort} = require('serialport');",
+        "const {SerialPortStream} = require('@serialport/stream');\n" +
+            "const {autoDetect} = require('@serialport/bindings-cpp');\n" +
+            'const DetectedBinding = autoDetect();\n' +
+            'class SerialPort extends SerialPortStream {\n' +
+            '    constructor (options, openCallback) {\n' +
+            '        super(Object.assign({binding: DetectedBinding}, options), openCallback);\n' +
+            '    }\n' +
+            '}\n' +
+            'SerialPort.list = DetectedBinding.list;\n' +
+            'SerialPort.binding = DetectedBinding;',
+        'direct @serialport requires'
+    );
 
     source = replaceOnce(
         source,
