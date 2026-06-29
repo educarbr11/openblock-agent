@@ -1,5 +1,6 @@
 const fs = require('fs');
 const path = require('path');
+const {spawnSync} = require('child_process');
 const asar = require('@electron/asar');
 
 const root = path.resolve(__dirname, '..');
@@ -84,6 +85,19 @@ const describeDist = () => {
         .join('\n');
 };
 
+const buildUnpackedApp = () => {
+    const command = process.platform === 'win32' ? 'npm.cmd' : 'npm';
+    console.log('No unpacked app found. Building unpacked app before verification...');
+    const result = spawnSync(command, ['run', 'build:pack'], {
+        cwd: root,
+        stdio: 'inherit',
+        env: process.env
+    });
+    if (result.status !== 0) {
+        fail(`Could not build unpacked app for verification. Exit code: ${result.status}`);
+    }
+};
+
 const verifyApp = appDir => {
     const appName = path.basename(appDir);
     const archive = path.join(appDir, 'resources', 'app.asar');
@@ -129,7 +143,12 @@ const verifyApp = appDir => {
     console.log(`${appName}: packaged serialport and BLE runtime dependencies verified`);
 };
 
-const apps = findUnpackedApps();
+let apps = findUnpackedApps();
+if (!apps.length) {
+    buildUnpackedApp();
+    apps = findUnpackedApps();
+}
+
 if (!apps.length) {
     fail(`No packaged app found in dist/**/resources/app.asar. Dist contents:\n${describeDist()}`);
 }
