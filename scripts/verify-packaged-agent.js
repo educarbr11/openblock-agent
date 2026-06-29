@@ -10,8 +10,12 @@ const requiredPackages = [
     '@serialport/bindings-cpp'
 ];
 
-const requiredUnpackedPatterns = [
-    /node_modules[\\/](?:.*[\\/]node_modules[\\/])?@serialport[\\/]bindings-cpp[\\/]build[\\/]Release[\\/]bindings\.node$/
+const requiredUnpackedPatternGroups = [
+    [
+        /node_modules[\\/](?:.*[\\/]node_modules[\\/])?@serialport[\\/]bindings-cpp[\\/]build[\\/]Release[\\/]bindings\.node$/,
+        /node_modules[\\/](?:.*[\\/]node_modules[\\/])?@serialport[\\/]bindings-cpp[\\/]prebuilds[\\/]win32-x64[\\/]node\.napi\.node$/,
+        /node_modules[\\/](?:.*[\\/]node_modules[\\/])?@serialport[\\/]bindings-cpp[\\/]prebuilds[\\/]linux-x64[\\/]node\.napi\.(?:glibc|musl)\.node$/
+    ]
 ];
 
 const fail = message => {
@@ -101,9 +105,9 @@ const verifyApp = appDir => {
         }
     }
 
-    for (const pattern of requiredUnpackedPatterns) {
-        if (!unpackedFiles.some(file => pattern.test(normalizeEntry(file)))) {
-            fail(`${appName}: missing unpacked native module matching ${pattern}`);
+    for (const patterns of requiredUnpackedPatternGroups) {
+        if (!unpackedFiles.some(file => patterns.some(pattern => pattern.test(normalizeEntry(file))))) {
+            fail(`${appName}: missing unpacked native module matching one of ${patterns.join(', ')}`);
         }
     }
 
