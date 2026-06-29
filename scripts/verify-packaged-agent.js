@@ -5,11 +5,10 @@ const asar = require('@electron/asar');
 const root = path.resolve(__dirname, '..');
 const dist = path.join(root, 'dist');
 
-const requiredRuntimePatterns = [
-    /\/node_modules\/(?:.*\/node_modules\/)?serialport\/dist\/index\.js$/,
-    /\/node_modules\/(?:.*\/node_modules\/)?@serialport\/stream\/dist\/index\.js$/,
-    /\/node_modules\/(?:.*\/node_modules\/)?@serialport\/bindings-cpp\/dist\/index\.js$/,
-    /\/node_modules\/(?:.*\/node_modules\/)?@serialport\/bindings-cpp\/dist\/load-bindings\.js$/
+const requiredPackages = [
+    'serialport',
+    '@serialport/stream',
+    '@serialport/bindings-cpp'
 ];
 
 const requiredUnpackedPatterns = [
@@ -38,6 +37,27 @@ const walkFiles = dir => {
     return result;
 };
 
+const packagePattern = packageName => {
+    const escaped = packageName.replace('/', '\\/');
+    return new RegExp(`\\/node_modules\\/(?:.*\\/node_modules\\/)?${escaped}\\/package\\.json$`);
+};
+
+const normalizeEntry = file => file.replace(/\\/g, '/');
+
+const packageRoot = packageJsonEntry => packageJsonEntry.replace(/\/package\.json$/, '');
+
+const packageMainEntry = (packageJsonEntry, packageJson) => {
+    const main = (packageJson.main || 'index.js').replace(/^\.\//, '');
+    return `${packageRoot(packageJsonEntry)}/${main}`.replace(/\\/g, '/');
+};
+
+const readPackageJson = (archive, unpackedRoot, entry) => {
+    if (entry.source === 'asar') {
+        return JSON.parse(asar.extractFile(archive, entry.path.replace(/^\//, '')).toString('utf8'));
+    }
+    return JSON.parse(fs.readFileSync(path.join(unpackedRoot, ...entry.path.replace(/^\//, '').split('/')), 'utf8'));
+};
+
 const findUnpackedApps = () => {
     if (!fs.existsSync(dist)) return [];
     return fs.readdirSync(dist)
@@ -52,17 +72,38 @@ const verifyApp = appDir => {
     const entries = asar.listPackage(archive);
     const unpackedRoot = path.join(appDir, 'resources', 'app.asar.unpacked');
     const unpackedFiles = walkFiles(unpackedRoot);
+    const packagedFiles = new Set(entries.concat(
+        unpackedFiles.map(file => `/${path.relative(unpackedRoot, file).split(path.sep).join('/')}`)
+    ));
+    const packageEntries = entries.map(file => ({source: 'asar', path: file})).concat(
+        unpackedFiles.map(file => ({
+            source: 'unpacked',
+            path: `/${path.relative(unpackedRoot, file).split(path.sep).join('/')}`
+        }))
+    );
 
-    for (const pattern of requiredRuntimePatterns) {
-        const foundInAsar = entries.some(file => pattern.test(file));
-        const foundUnpacked = unpackedFiles.some(file => pattern.test(file.replace(/\\/g, '/')));
-        if (!foundInAsar && !foundUnpacked) {
-            fail(`${appName}: missing packaged runtime file matching ${pattern}`);
+    for (const packageName of requiredPackages) {
+        const pattern = packagePattern(packageName);
+        const candidates = packageEntries.filter(file => pattern.test(file.path));
+        if (!candidates.length) {
+            fail(`${appName}: missing packaged ${packageName}/package.json`);
+        }
+
+        const hasValidMain = candidates.some(candidate => {
+            const packageJson = readPackageJson(archive, unpackedRoot, candidate);
+            return packagedFiles.has(packageMainEntry(candidate.path, packageJson));
+        });
+        if (!hasValidMain) {
+            const checked = candidates.map(candidate => {
+                const packageJson = readPackageJson(archive, unpackedRoot, candidate);
+                return packageMainEntry(candidate.path, packageJson);
+            }).join(', ');
+            fail(`${appName}: missing packaged main file for ${packageName}: ${checked}`);
         }
     }
 
     for (const pattern of requiredUnpackedPatterns) {
-        if (!unpackedFiles.some(file => pattern.test(file))) {
+        if (!unpackedFiles.some(file => pattern.test(normalizeEntry(file)))) {
             fail(`${appName}: missing unpacked native module matching ${pattern}`);
         }
     }
