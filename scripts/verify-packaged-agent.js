@@ -1,6 +1,5 @@
 const fs = require('fs');
 const path = require('path');
-const {spawnSync} = require('child_process');
 const asar = require('@electron/asar');
 
 const root = path.resolve(__dirname, '..');
@@ -8,9 +7,7 @@ const dist = path.join(root, 'dist');
 
 const requiredPackages = [
     '@serialport/stream',
-    '@serialport/bindings-cpp',
-    '@abandonware/noble',
-    'dbus-next'
+    '@serialport/bindings-cpp'
 ];
 
 const requiredUnpackedPatternGroups = [
@@ -18,11 +15,6 @@ const requiredUnpackedPatternGroups = [
         /node_modules[\\/](?:.*[\\/]node_modules[\\/])?@serialport[\\/]bindings-cpp[\\/]build[\\/]Release[\\/]bindings\.node$/,
         /node_modules[\\/](?:.*[\\/]node_modules[\\/])?@serialport[\\/]bindings-cpp[\\/]prebuilds[\\/]win32-x64[\\/]node\.napi\.node$/,
         /node_modules[\\/](?:.*[\\/]node_modules[\\/])?@serialport[\\/]bindings-cpp[\\/]prebuilds[\\/]linux-x64[\\/]node\.napi\.(?:glibc|musl)\.node$/
-    ],
-    [
-        /node_modules[\\/](?:.*[\\/]node_modules[\\/])?@abandonware[\\/]bluetooth-hci-socket[\\/]build[\\/]Release[\\/]bluetooth_hci_socket\.node$/,
-        /node_modules[\\/](?:.*[\\/]node_modules[\\/])?@abandonware[\\/]bluetooth-hci-socket[\\/]lib[\\/]binding[\\/]bluetooth_hci_socket\.node$/,
-        /node_modules[\\/](?:.*[\\/]node_modules[\\/])?@abandonware[\\/]noble[\\/]build[\\/]Release[\\/]noble\.node$/
     ]
 ];
 
@@ -71,31 +63,10 @@ const readPackageJson = (archive, unpackedRoot, entry) => {
 
 const findUnpackedApps = () => {
     if (!fs.existsSync(dist)) return [];
-    return walkFiles(dist)
-        .filter(file => path.basename(file) === 'app.asar' && path.basename(path.dirname(file)) === 'resources')
-        .map(file => path.dirname(path.dirname(file)))
-        .filter((appDir, index, appDirs) => appDirs.indexOf(appDir) === index);
-};
-
-const describeDist = () => {
-    if (!fs.existsSync(dist)) return 'dist directory does not exist';
-    return walkFiles(dist)
-        .slice(0, 40)
-        .map(file => path.relative(root, file))
-        .join('\n');
-};
-
-const buildUnpackedApp = () => {
-    const command = process.platform === 'win32' ? 'npm.cmd' : 'npm';
-    console.log('No unpacked app found. Building unpacked app before verification...');
-    const result = spawnSync(command, ['run', 'build:pack'], {
-        cwd: root,
-        stdio: 'inherit',
-        env: process.env
-    });
-    if (result.status !== 0) {
-        fail(`Could not build unpacked app for verification. Exit code: ${result.status}`);
-    }
+    return fs.readdirSync(dist)
+        .filter(name => name.endsWith('-unpacked'))
+        .map(name => path.join(dist, name))
+        .filter(appDir => fs.existsSync(path.join(appDir, 'resources', 'app.asar')));
 };
 
 const verifyApp = appDir => {
@@ -140,17 +111,12 @@ const verifyApp = appDir => {
         }
     }
 
-    console.log(`${appName}: packaged serialport and BLE runtime dependencies verified`);
+    console.log(`${appName}: packaged serialport runtime dependencies verified`);
 };
 
-let apps = findUnpackedApps();
+const apps = findUnpackedApps();
 if (!apps.length) {
-    buildUnpackedApp();
-    apps = findUnpackedApps();
-}
-
-if (!apps.length) {
-    fail(`No packaged app found in dist/**/resources/app.asar. Dist contents:\n${describeDist()}`);
+    fail('No packaged app found in dist/*-unpacked');
 }
 
 apps.forEach(verifyApp);

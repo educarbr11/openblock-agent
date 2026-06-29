@@ -1,7 +1,7 @@
 {
   "name": "openblock-agent",
   "productName": "DoGoBlock Agent",
-  "version": "1.0.23",
+  "version": "1.0.24",
   "description": "DoGoBlock agent provides link and resource services for the online editor",
   "main": "src/index.js",
   "author": "DoGoBlock Team",
@@ -17,10 +17,10 @@
     "prune:agent": "node scripts/prune-agent-resources.js",
     "fetch:all": "npm run fetch:drivers && npm run fetch:firmwares && npm run fetch:tools && npm run prune:agent",
     "start": "electron .",
-    "build": "npm run fetch:all && npm run prepare:link && node scripts/run-electron-builder.js",
-    "build:pack": "npm run fetch:all && npm run prepare:link && node scripts/run-electron-builder.js --dir",
+    "build": "npm run fetch:all && npm run prepare:link && electron-builder",
+    "build:pack": "npm run fetch:all && npm run prepare:link && electron-builder --dir",
     "verify:package": "node scripts/verify-packaged-agent.js",
-    "dist": "npm run clean && npm run fetch:all && npm run prepare:link && node scripts/run-electron-builder.js",
+    "dist": "npm run clean && npm run fetch:all && npm run prepare:link && electron-builder",
     "clean": "rimraf ./dist ./external-resources ./tools ./firmwares ./drivers",
     "lint": "eslint ./src",
     "test": ""
@@ -42,10 +42,8 @@
   },
   "homepage": "https://github.com/educarbr11/openblock-agent#readme",
   "dependencies": {
-    "@abandonware/noble": "1.9.2-25",
     "@serialport/bindings-cpp": "10.7.0",
     "@serialport/stream": "10.3.0",
-    "dbus-next": "0.10.2",
     "node-localstorage": "^2.2.1",
     "openblock-link": "https://github.com/educarbr11/openblock-link-dogo/archive/053c19e9c905652009296d30ba5769f96567e817.tar.gz",
     "os-locale": "^5.0.0"

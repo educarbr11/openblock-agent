@@ -151,17 +151,18 @@ const patchLinkPackage = () => {
     pkg.dependencies['adm-zip'] = pkg.dependencies['adm-zip'] || '^0.5.17';
     pkg.dependencies['@serialport/stream'] = pkg.dependencies['@serialport/stream'] || '10.3.0';
     pkg.dependencies['@serialport/bindings-cpp'] = pkg.dependencies['@serialport/bindings-cpp'] || '10.7.0';
-    pkg.dependencies['@abandonware/noble'] = pkg.dependencies['@abandonware/noble'] || '1.9.2-25';
-    pkg.dependencies['dbus-next'] = pkg.dependencies['dbus-next'] || '0.10.2';
     [
         '7zip-bin',
+        '@abandonware/noble',
         'axios',
+        'dbus-next',
         'download-github-release',
         'https',
         'install',
         'node-7z',
         'os',
-        'serialport'
+        'serialport',
+        'usb'
     ].forEach(dep => {
         if (pkg.dependencies) {
             delete pkg.dependencies[dep];
@@ -198,6 +199,8 @@ const patchLinkIndex = () => {
 
 const removeUnusedNativeModules = () => {
     [
+        path.join(__dirname, '..', 'node_modules', '@abandonware'),
+        path.join(__dirname, '..', 'node_modules', 'dbus-next'),
         path.join(__dirname, '..', 'node_modules', 'usb')
     ].forEach(target => {
         if (fs.existsSync(target)) {

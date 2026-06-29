@@ -7,8 +7,6 @@ files:
   - package.json
   - node_modules/openblock-link/**/*
   - node_modules/@serialport/**/*
-  - node_modules/@abandonware/**/*
-  - node_modules/dbus-next/**/*
   - "!**/.git/**"
   - "!**/.github/**"
   - "!**/.vscode/**"
@@ -21,10 +19,6 @@ files:
   - "!drivers/**"
   - "!tmp/**"
   - "!**/*.map"
-asarUnpack:
-  - node_modules/@serialport/bindings-cpp/**/*
-  - node_modules/@abandonware/bluetooth-hci-socket/**/*
-  - node_modules/usb/**/*
 extraResources:
   - from: tools
     to: tools
