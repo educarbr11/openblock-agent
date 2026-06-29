@@ -19,7 +19,13 @@ files:
   - "!drivers/**"
   - "!tmp/**"
   - "!**/*.map"
-extraFiles: ["tools", "firmwares", "drivers"]
+extraResources:
+  - from: tools
+    to: tools
+  - from: firmwares
+    to: firmwares
+  - from: drivers
+    to: drivers
 compression: maximum
 
 appId: 'br.com.dogoblock.agent'
