@@ -12,7 +12,7 @@
     "i18n:src": "mkdirp translations && format-message extract --out-file translations/en.json src/**.js",
     "i18n:push": "tx-push-src openblock-editor link-desktop translations/en.json",
     "fetch:drivers": "rimraf ./drivers && node scripts/download-driver.js",
-    "fetch:firmwares": "rimraf ./firmwares && node ./node_modules/openblock-link/script/download-firmwares.js",
+    "fetch:firmwares": "rimraf ./firmwares && node ./node_modules/openblock-link/script/download-firmwares.js && node scripts/sync-dogoblock-link-assets.js",
     "fetch:tools": "node scripts/ensure-7za-executable.js && rimraf ./tools && node ./node_modules/openblock-link/script/download-tools.js",
     "prune:agent": "node scripts/prune-agent-resources.js",
     "fetch:all": "npm run fetch:drivers && npm run fetch:firmwares && npm run fetch:tools && npm run prune:agent",
@@ -46,7 +46,7 @@
     "@serialport/stream": "10.3.0",
     "dbus-next": "0.10.2",
     "node-localstorage": "^2.2.1",
-    "openblock-link": "https://github.com/educarbr11/openblock-link-dogo/archive/053c19e9c905652009296d30ba5769f96567e817.tar.gz",
+    "openblock-link": "https://github.com/educarbr11/openblock-link-dogo/archive/69ffa06a7c6c77e4157414015be44acebe59a10e.tar.gz",
     "os-locale": "^5.0.0"
   },
   "overrides": {

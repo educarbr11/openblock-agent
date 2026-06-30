@@ -5,6 +5,10 @@ const root = path.resolve(__dirname, '..');
 const dryRun = process.argv.includes('--dry-run');
 
 const allowedArduinoFirmwares = new Set(['arduinoUno.hex', 'arduinoUnoUltra.hex']);
+const allowedMicrobitFirmwares = new Set([
+    'dogoblock-microbit-ble.hex',
+    'dogoblock-microbit-ble-v2.hex'
+]);
 const removePath = target => {
     if (!fs.existsSync(target)) return;
     const relative = path.relative(root, target);
@@ -59,6 +63,7 @@ const pruneArduinoTools = () => {
 
 const pruneFirmwares = () => {
     keepOnlyChildren(path.join(root, 'firmwares', 'arduino'), allowedArduinoFirmwares);
+    keepOnlyChildren(path.join(root, 'firmwares', 'microbit'), allowedMicrobitFirmwares);
     removePath(path.join(root, 'firmwares', 'microPython'));
 };
 

@@ -304,10 +304,135 @@ const patchSerialportSession = () => {
     fs.writeFileSync(file, source);
 };
 
+const patchMicrobitBleFirmware = () => {
+    const file = path.join(linkRoot, 'src', 'upload', 'microbit-ble.js');
+    const source = `'use strict';
+
+const fs = require('fs');
+const os = require('os');
+const path = require('path');
+const ansi = require('ansi-string');
+
+const FIRMWARE_V1 = 'dogoblock-microbit-ble.hex';
+const FIRMWARE_V2 = 'dogoblock-microbit-ble-v2.hex';
+
+class MicrobitBleFirmware {
+    constructor (userDataPath, sendstd) {
+        this._userDataPath = userDataPath;
+        this._sendstd = sendstd;
+    }
+
+    async flashScratchBleFirmware () {
+        const volume = this._findMicrobitVolume();
+        if (!volume) {
+            throw new Error('Unidade MICROBIT nao encontrada. Conecte o micro:bit por USB e tente novamente.');
+        }
+
+        const firmwareName = this._detectMicrobitV2(volume) ? FIRMWARE_V2 : FIRMWARE_V1;
+        const firmwarePath = this._findFirmwarePath(firmwareName);
+        if (!firmwarePath) {
+            throw new Error('Firmware Dogoblock BLE nao encontrado no Agent: ' + firmwareName);
+        }
+
+        this._sendstd(ansi.clear + 'Gravando firmware Dogoblock BLE no micro:bit (' + firmwareName + ')...\\\\n');
+        fs.copyFileSync(firmwarePath, path.join(volume, firmwareName));
+        this._sendstd(ansi.clear + 'Firmware copiado. Aguarde o micro:bit reiniciar antes de conectar.\\\\n');
+        return 'Success';
+    }
+
+    _findFirmwarePath (firmwareName) {
+        const candidates = [
+            process.resourcesPath && path.join(process.resourcesPath, 'firmwares', 'microbit', firmwareName),
+            path.join(process.cwd(), 'firmwares', 'microbit', firmwareName),
+            path.resolve(__dirname, '..', '..', '..', '..', 'firmwares', 'microbit', firmwareName),
+            path.resolve(__dirname, '..', '..', 'firmwares', 'microbit', firmwareName)
+        ].filter(Boolean);
+
+        return candidates.find(candidate => fs.existsSync(candidate));
+    }
+
+    _detectMicrobitV2 (volume) {
+        const detailsPath = path.join(volume, 'DETAILS.TXT');
+        if (!fs.existsSync(detailsPath)) {
+            return false;
+        }
+
+        try {
+            const details = fs.readFileSync(detailsPath, 'utf8');
+            return /Board-ID:\\\\s*9904|micro:bit\\\\s+V2|V2/i.test(details);
+        } catch (err) {
+            return false;
+        }
+    }
+
+    _findMicrobitVolume () {
+        const candidates = this._candidateVolumes();
+        return candidates.find(candidate => this._isMicrobitVolume(candidate));
+    }
+
+    _candidateVolumes () {
+        const user = os.userInfo().username;
+        const candidates = this._dedupe([
+            '/Volumes/MICROBIT',
+            path.join('/media', user, 'MICROBIT'),
+            path.join('/run/media', user, 'MICROBIT'),
+            '/mnt/MICROBIT',
+            ...this._mountedLinuxVolumes('/media'),
+            ...this._mountedLinuxVolumes('/run/media')
+        ]);
+
+        if (process.platform === 'win32') {
+            for (let code = 65; code <= 90; code++) {
+                candidates.push(String.fromCharCode(code) + ':\\\\\\\\');
+            }
+        }
+
+        return candidates;
+    }
+
+    _mountedLinuxVolumes (basePath) {
+        if (!fs.existsSync(basePath)) {
+            return [];
+        }
+        return fs.readdirSync(basePath)
+            .reduce((result, entry) => {
+                const userPath = path.join(basePath, entry);
+                try {
+                    const stat = fs.statSync(userPath);
+                    if (stat.isDirectory()) {
+                        result.push(path.join(userPath, 'MICROBIT'));
+                    }
+                } catch (err) {
+                    // Ignore mount points that disappear while scanning.
+                }
+                return result;
+            }, []);
+    }
+
+    _dedupe (items) {
+        return items.filter((item, index) => items.indexOf(item) === index);
+    }
+
+    _isMicrobitVolume (candidate) {
+        if (!candidate || !fs.existsSync(candidate)) {
+            return false;
+        }
+        return fs.existsSync(path.join(candidate, 'DETAILS.TXT')) ||
+            fs.existsSync(path.join(candidate, 'MICROBIT.HTM'));
+    }
+}
+
+module.exports = MicrobitBleFirmware;
+`;
+
+    fs.writeFileSync(file, source);
+};
+
 patchLinkPackage();
 copySerialportRuntimeIntoLink();
 patchLinkIndex();
 patchArduinoUploader();
 patchSerialportSession();
+patchMicrobitBleFirmware();
 removeUnusedNativeModules();
-console.log('openblock-link patched for Dogoblock lightweight artifact upload');
+console.log('openblock-link patched for Dogoblock lightweight artifact upload and micro:bit BLE firmware');
