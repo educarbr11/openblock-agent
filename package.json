@@ -1,7 +1,7 @@
 {
   "name": "openblock-agent",
   "productName": "DoGoBlock Agent",
-  "version": "1.0.26",
+  "version": "1.0.27",
   "description": "DoGoBlock agent provides link and resource services for the online editor",
   "main": "src/index.js",
   "author": "DoGoBlock Team",
@@ -13,7 +13,7 @@
     "i18n:push": "tx-push-src openblock-editor link-desktop translations/en.json",
     "fetch:drivers": "rimraf ./drivers && node scripts/download-driver.js",
     "fetch:firmwares": "rimraf ./firmwares && node ./node_modules/openblock-link/script/download-firmwares.js && node scripts/sync-dogoblock-link-assets.js",
-    "fetch:tools": "node scripts/ensure-7za-executable.js && rimraf ./tools && node ./node_modules/openblock-link/script/download-tools.js",
+    "fetch:tools": "node scripts/ensure-7za-executable.js && rimraf ./tools && node scripts/download-agent-tools.js",
     "prune:agent": "node scripts/prune-agent-resources.js",
     "fetch:all": "npm run fetch:drivers && npm run fetch:firmwares && npm run fetch:tools && npm run prune:agent",
     "start": "electron .",
