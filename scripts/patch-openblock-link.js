@@ -151,10 +151,10 @@ const patchLinkPackage = () => {
     pkg.dependencies['adm-zip'] = pkg.dependencies['adm-zip'] || '^0.5.17';
     pkg.dependencies['@serialport/stream'] = pkg.dependencies['@serialport/stream'] || '10.3.0';
     pkg.dependencies['@serialport/bindings-cpp'] = pkg.dependencies['@serialport/bindings-cpp'] || '10.7.0';
+    pkg.dependencies['@abandonware/noble'] = pkg.dependencies['@abandonware/noble'] || '1.9.2-25';
     pkg.dependencies['dbus-next'] = pkg.dependencies['dbus-next'] || '0.10.2';
     [
         '7zip-bin',
-        '@abandonware/noble',
         'axios',
         'download-github-release',
         'https',
@@ -199,7 +199,6 @@ const patchLinkIndex = () => {
 
 const removeUnusedNativeModules = () => {
     [
-        path.join(__dirname, '..', 'node_modules', '@abandonware'),
         path.join(__dirname, '..', 'node_modules', 'usb')
     ].forEach(target => {
         if (fs.existsSync(target)) {
@@ -300,6 +299,45 @@ const patchSerialportSession = () => {
             'compiled artifact upload path'
         );
     }
+
+    fs.writeFileSync(file, source);
+};
+
+const patchBleSession = () => {
+    const file = path.join(linkRoot, 'src', 'session', 'ble.js');
+    let source = fs.readFileSync(file, 'utf8');
+
+    const nobleRuntimeRequire = "const nobleRuntimePath = require('path');\n" +
+        'const requireNobleRuntime = packageName => {\n' +
+        '    const packagePathParts = packageName.split(\'/\');\n' +
+        '    const candidates = [packageName];\n' +
+        '    if (process.resourcesPath) {\n' +
+        "        candidates.push(nobleRuntimePath.join(process.resourcesPath, 'app.asar.unpacked', 'node_modules', ...packagePathParts));\n" +
+        '    }\n' +
+        '    let lastError = null;\n' +
+        '    for (const candidate of candidates) {\n' +
+        '        try {\n' +
+        '            return require(candidate); // eslint-disable-line global-require, import/no-dynamic-require\n' +
+        '        } catch (err) {\n' +
+        '            lastError = err;\n' +
+        '        }\n' +
+        '    }\n' +
+        '    throw lastError;\n' +
+        '};\n';
+
+    if (!source.includes('requireNobleRuntime')) {
+        source = replaceOnce(
+            source,
+            "const MicrobitBleFirmware = require('../upload/microbit-ble');\n",
+            "const MicrobitBleFirmware = require('../upload/microbit-ble');\n" + nobleRuntimeRequire,
+            'noble runtime helper'
+        );
+    }
+
+    source = source.replace(
+        "                noble = require('@abandonware/noble'); // eslint-disable-line global-require",
+        "                noble = requireNobleRuntime('@abandonware/noble');"
+    );
 
     fs.writeFileSync(file, source);
 };
@@ -433,6 +471,7 @@ copySerialportRuntimeIntoLink();
 patchLinkIndex();
 patchArduinoUploader();
 patchSerialportSession();
+patchBleSession();
 patchMicrobitBleFirmware();
 removeUnusedNativeModules();
 console.log('openblock-link patched for Dogoblock lightweight artifact upload and micro:bit BLE firmware');

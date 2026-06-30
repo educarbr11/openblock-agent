@@ -7,7 +7,8 @@ const dist = path.join(root, 'dist');
 
 const requiredPackages = [
     '@serialport/stream',
-    '@serialport/bindings-cpp'
+    '@serialport/bindings-cpp',
+    '@abandonware/noble'
 ];
 
 const requiredUnpackedPatternGroups = [
@@ -15,6 +16,11 @@ const requiredUnpackedPatternGroups = [
         /node_modules[\\/](?:.*[\\/]node_modules[\\/])?@serialport[\\/]bindings-cpp[\\/]build[\\/]Release[\\/]bindings\.node$/,
         /node_modules[\\/](?:.*[\\/]node_modules[\\/])?@serialport[\\/]bindings-cpp[\\/]prebuilds[\\/]win32-x64[\\/]node\.napi\.node$/,
         /node_modules[\\/](?:.*[\\/]node_modules[\\/])?@serialport[\\/]bindings-cpp[\\/]prebuilds[\\/]linux-x64[\\/]node\.napi\.(?:glibc|musl)\.node$/
+    ],
+    [
+        /node_modules[\\/](?:.*[\\/]node_modules[\\/])?@abandonware[\\/]bluetooth-hci-socket[\\/]build[\\/]Release[\\/]bluetooth_hci_socket\.node$/,
+        /node_modules[\\/](?:.*[\\/]node_modules[\\/])?@abandonware[\\/]bluetooth-hci-socket[\\/]node_modules[\\/]usb[\\/]prebuilds[\\/]win32-x64[\\/]node\.napi\.node$/,
+        /node_modules[\\/](?:.*[\\/]node_modules[\\/])?@abandonware[\\/]bluetooth-hci-socket[\\/]node_modules[\\/]usb[\\/]prebuilds[\\/]linux-x64[\\/]node\.napi\.(?:glibc|musl)\.node$/
     ]
 ];
 
@@ -111,7 +117,7 @@ const verifyApp = appDir => {
         }
     }
 
-    console.log(`${appName}: packaged serialport runtime dependencies verified`);
+    console.log(`${appName}: packaged serialport and BLE runtime dependencies verified`);
 };
 
 const apps = findUnpackedApps();

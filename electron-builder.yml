@@ -7,6 +7,9 @@ files:
   - package.json
   - node_modules/openblock-link/**/*
   - node_modules/@serialport/**/*
+  - node_modules/@abandonware/**/*
+  - node_modules/node-gyp-build/**/*
+  - node_modules/napi-thread-safe-callback/**/*
   - node_modules/dbus-next/**/*
   - "!**/.git/**"
   - "!**/.github/**"
@@ -28,6 +31,7 @@ extraResources:
   - from: drivers
     to: drivers
 compression: maximum
+npmRebuild: false
 
 appId: 'br.com.dogoblock.agent'
 productName: "DoGoBlock Agent"
