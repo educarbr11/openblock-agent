@@ -312,8 +312,8 @@ const patchSerialportSession = () => {
                 if (!volume) {
                     throw new Error('Unidade MICROBIT nao encontrada. Conecte o micro:bit por USB e tente novamente.');
                 }
-                const fileName = uploadOptions.fileName || 'dogoblock-microbit-program.hex';
-                const safeFileName = path.basename(fileName).replace(/[^a-z0-9_.-]/gi, '_') || 'dogoblock-microbit-program.hex';
+                const fileName = uploadOptions.fileName || 'main.hex';
+                const safeFileName = path.basename(fileName).replace(/[^a-z0-9_.-]/gi, '_') || 'main.hex';
                 const targetPath = path.join(volume, safeFileName);
                 this.sendstd(ansi.clear + 'Copiando programa MicroPython para ' + volume + '\\\\n');
                 this._clearMicrobitFailFile(volume);
