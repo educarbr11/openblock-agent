@@ -263,15 +263,81 @@ const patchSerialportSession = () => {
     source = replaceOnce(
         source,
         "const ansi = require('ansi-string');",
-        "const ansi = require('ansi-string');\nconst fs = require('fs');\nconst path = require('path');",
+        "const ansi = require('ansi-string');\nconst fs = require('fs');\nconst os = require('os');\nconst path = require('path');",
         'fs/path requires'
     );
+
+    if (!source.includes("MICROBIT_REALTIME_FIRMWARE_V2")) {
+        source = replaceOnce(
+            source,
+            'const PERIPHERAL_UNPLUG_CHECK_INTERVAL = 100;',
+            "const PERIPHERAL_UNPLUG_CHECK_INTERVAL = 100;\nconst MICROBIT_REALTIME_FIRMWARE_V2 = 'dogoblock-microbit-realtime-v2.hex';\nconst MICROBIT_HEX_WRITE_CHUNK_SIZE = 4096;\nconst MICROBIT_HEX_WRITE_RETRIES = 2;\nconst MICROBIT_HEX_WRITE_RETRY_DELAY_MS = 1200;\nconst MICROBIT_HEX_WRITE_CHUNK_DELAY_MS = 8;\nconst MICROBIT_TRANSFER_VERIFY_DELAY_MS = 6000;\n\nconst wait = ms => new Promise(resolve => setTimeout(resolve, ms));",
+            'microbit realtime firmware constant'
+        );
+    }
+    if (!source.includes('MICROBIT_HEX_WRITE_CHUNK_SIZE')) {
+        source = replaceOnce(
+            source,
+            "const MICROBIT_REALTIME_FIRMWARE_V2 = 'dogoblock-microbit-realtime-v2.hex';",
+            "const MICROBIT_REALTIME_FIRMWARE_V2 = 'dogoblock-microbit-realtime-v2.hex';\nconst MICROBIT_HEX_WRITE_CHUNK_SIZE = 4096;\nconst MICROBIT_HEX_WRITE_RETRIES = 2;\nconst MICROBIT_HEX_WRITE_RETRY_DELAY_MS = 1200;\nconst MICROBIT_HEX_WRITE_CHUNK_DELAY_MS = 8;\nconst MICROBIT_TRANSFER_VERIFY_DELAY_MS = 6000;\n\nconst wait = ms => new Promise(resolve => setTimeout(resolve, ms));",
+            'microbit chunked hex write constants'
+        );
+    }
+    if (!source.includes('MICROBIT_TRANSFER_VERIFY_DELAY_MS')) {
+        source = replaceOnce(
+            source,
+            'const MICROBIT_HEX_WRITE_CHUNK_DELAY_MS = 8;',
+            'const MICROBIT_HEX_WRITE_CHUNK_DELAY_MS = 8;\nconst MICROBIT_TRANSFER_VERIFY_DELAY_MS = 6000;',
+            'microbit transfer verification constant'
+        );
+    }
+
     source = replaceOnce(
         source,
         '        const {message, config, encoding} = params;',
         '        const {message, config, encoding, uploadOptions} = params;',
         'uploadOptions destructure'
     );
+
+    if (!source.includes("uploadOptions.artifactType === 'microbitHex'")) {
+        source = replaceOnce(
+            source,
+            '        const code = new Buffer.from(message, encoding).toString();',
+            `        const code = new Buffer.from(message, encoding).toString();
+
+        if (uploadOptions && uploadOptions.artifactType === 'microbitHex') {
+            try {
+                this.sendRemoteRequest('setUploadAbortEnabled', false);
+                const volume = this._findMicrobitVolume();
+                if (!volume) {
+                    throw new Error('Unidade MICROBIT nao encontrada. Conecte o micro:bit por USB e tente novamente.');
+                }
+                const fileName = uploadOptions.fileName || 'dogoblock-microbit-program.hex';
+                const safeFileName = path.basename(fileName).replace(/[^a-z0-9_.-]/gi, '_') || 'dogoblock-microbit-program.hex';
+                const targetPath = path.join(volume, safeFileName);
+                this.sendstd(ansi.clear + 'Copiando programa MicroPython para ' + volume + '\\\\n');
+                this._clearMicrobitFailFile(volume);
+                await this._writeHexToMicrobitVolume(code, targetPath);
+                await this._verifyMicrobitTransfer(volume);
+                this.sendstd(ansi.clear + 'Programa copiado. Aguarde o micro:bit reiniciar. Isso pode levar alguns segundos antes do codigo comecar a executar.\\\\n');
+                this.sendRemoteRequest('uploadSuccess', {aborted: false});
+            } catch (err) {
+                this.sendRemoteRequest('uploadError', {
+                    message: ansi.red + err.message
+                });
+            }
+            return;
+        }
+
+        if (!this.peripheralParams || !this.peripheral) {
+            this.sendRemoteRequest('uploadError', {
+                message: ansi.red + 'Nenhuma placa conectada para envio serial.'
+            });
+            return;
+        }`,
+            'microbit hex artifact upload path'
+        );
+    }
 
     if (!source.includes("uploadOptions.artifactType === 'compiledArtifact'")) {
         source = replaceOnce(
@@ -297,6 +363,198 @@ const patchSerialportSession = () => {
 
                 const exitCode = await this.tool.build(code);`,
             'compiled artifact upload path'
+        );
+    }
+
+    if (!source.includes('_findMicrobitVolume ()')) {
+        source = replaceOnce(
+            source,
+            '    async abortUpload () {',
+            `    _findMicrobitVolume () {
+        const candidates = this._candidateMicrobitVolumes();
+        return candidates.find(candidate => this._isMicrobitVolume(candidate));
+    }
+
+    _candidateMicrobitVolumes () {
+        const user = os.userInfo().username;
+        const candidates = [
+            '/Volumes/MICROBIT',
+            path.join('/media', user, 'MICROBIT'),
+            path.join('/run/media', user, 'MICROBIT'),
+            '/mnt/MICROBIT',
+            ...this._mountedLinuxMicrobitVolumes('/media'),
+            ...this._mountedLinuxMicrobitVolumes('/run/media')
+        ];
+
+        if (process.platform === 'win32') {
+            for (let code = 65; code <= 90; code++) {
+                candidates.push(String.fromCharCode(code) + ':\\\\\\\\');
+            }
+        }
+
+        return candidates.filter((item, index) => item && candidates.indexOf(item) === index);
+    }
+
+    _mountedLinuxMicrobitVolumes (basePath) {
+        if (!fs.existsSync(basePath)) {
+            return [];
+        }
+        return fs.readdirSync(basePath)
+            .reduce((result, entry) => {
+                const userPath = path.join(basePath, entry);
+                try {
+                    const stat = fs.statSync(userPath);
+                    if (stat.isDirectory()) {
+                        result.push(path.join(userPath, 'MICROBIT'));
+                    }
+                } catch (err) {
+                    // Ignore mount points that disappear while scanning.
+                }
+                return result;
+            }, []);
+    }
+
+    _isMicrobitVolume (candidate) {
+        if (!candidate || !fs.existsSync(candidate)) {
+            return false;
+        }
+        return fs.existsSync(path.join(candidate, 'DETAILS.TXT')) ||
+            fs.existsSync(path.join(candidate, 'MICROBIT.HTM'));
+    }
+
+    async abortUpload () {`,
+            'microbit volume helper methods'
+        );
+    }
+
+    if (!source.includes('_findMicrobitRealtimeFirmware ()')) {
+        source = replaceOnce(
+            source,
+            '    async abortUpload () {',
+            `    _findMicrobitRealtimeFirmware () {
+        const candidates = [
+            process.env.DOGOBLOCK_MICROBIT_REALTIME_HEX_V2,
+            process.env.DOGOBLOCK_MICROBIT_REALTIME_HEX,
+            process.resourcesPath && path.join(
+                process.resourcesPath,
+                'firmwares',
+                'microbit',
+                MICROBIT_REALTIME_FIRMWARE_V2
+            ),
+            path.join(process.cwd(), 'firmwares', 'microbit', MICROBIT_REALTIME_FIRMWARE_V2),
+            path.resolve(__dirname, '..', '..', 'firmwares', 'microbit', MICROBIT_REALTIME_FIRMWARE_V2),
+            path.resolve(__dirname, '..', '..', '..', '..', 'firmwares', 'microbit', MICROBIT_REALTIME_FIRMWARE_V2)
+        ].filter(Boolean);
+
+        return candidates.find(candidate => fs.existsSync(candidate));
+    }
+
+    async abortUpload () {`,
+            'microbit realtime firmware helper method'
+        );
+    }
+
+    if (!source.includes('_writeHexToMicrobitVolume (')) {
+        source = replaceOnce(
+            source,
+            '    async abortUpload () {',
+            `    async _copyHexToMicrobitVolume (sourcePath, targetPath) {
+        const data = fs.readFileSync(sourcePath);
+        await this._writeHexToMicrobitVolume(data, targetPath);
+    }
+
+    async _writeHexToMicrobitVolume (hexData, targetPath) {
+        const data = Buffer.isBuffer(hexData) ? hexData : Buffer.from(hexData);
+        let lastError = null;
+
+        for (let attempt = 0; attempt <= MICROBIT_HEX_WRITE_RETRIES; attempt++) {
+            try {
+                await this._writeHexToMicrobitVolumeOnce(data, targetPath);
+                return;
+            } catch (err) {
+                lastError = err;
+                try {
+                    fs.rmSync(targetPath, {force: true});
+                } catch (removeErr) {
+                    // Ignore partial files that DAPLink already consumed.
+                }
+                if (attempt < MICROBIT_HEX_WRITE_RETRIES) {
+                    this.sendstd(ansi.yellow_dark + 'Falha temporaria ao copiar para o micro:bit. Tentando novamente...\\\\n');
+                    await wait(MICROBIT_HEX_WRITE_RETRY_DELAY_MS);
+                }
+            }
+        }
+
+        throw lastError;
+    }
+
+    async _writeHexToMicrobitVolumeOnce (data, targetPath) {
+        const fd = fs.openSync(targetPath, 'w');
+        try {
+            for (let offset = 0; offset < data.length; offset += MICROBIT_HEX_WRITE_CHUNK_SIZE) {
+                const chunk = data.slice(offset, Math.min(offset + MICROBIT_HEX_WRITE_CHUNK_SIZE, data.length));
+                fs.writeSync(fd, chunk, 0, chunk.length);
+                if (offset % (MICROBIT_HEX_WRITE_CHUNK_SIZE * 16) === 0) {
+                    fs.fsyncSync(fd);
+                }
+                await wait(MICROBIT_HEX_WRITE_CHUNK_DELAY_MS);
+            }
+            fs.fsyncSync(fd);
+        } finally {
+            fs.closeSync(fd);
+        }
+    }
+
+    _clearMicrobitFailFile (volume) {
+        try {
+            fs.rmSync(path.join(volume, 'FAIL.TXT'), {force: true});
+        } catch (err) {
+            // Ignore stale DAPLink status files that cannot be removed.
+        }
+    }
+
+    async _verifyMicrobitTransfer (volume) {
+        await wait(MICROBIT_TRANSFER_VERIFY_DELAY_MS);
+        const failPath = path.join(volume, 'FAIL.TXT');
+        if (fs.existsSync(failPath)) {
+            const message = fs.readFileSync(failPath, 'utf8').trim();
+            throw new Error(message || 'Falha ao transferir arquivo para o micro:bit.');
+        }
+    }
+
+    async abortUpload () {`,
+            'microbit fsync hex write helpers'
+        );
+    }
+
+    if (source.includes('const flashExitCode = await this.tool.flashRealtimeFirmware();')) {
+        source = source.replace(
+            /        case 'microbit': \{[\s\S]*?const flashExitCode = await this\.tool\.flashRealtimeFirmware\(\);[\s\S]*?            break;\n        \}/,
+            `        case 'microbit': {
+            try {
+                this.sendRemoteRequest('setUploadAbortEnabled', false);
+                const volume = this._findMicrobitVolume();
+                if (!volume) {
+                    throw new Error('Unidade MICROBIT nao encontrada. Conecte o micro:bit por USB e tente novamente.');
+                }
+                const firmwarePath = this._findMicrobitRealtimeFirmware();
+                if (!firmwarePath) {
+                    throw new Error('Firmware dogoblock-microbit-realtime-v2.hex nao encontrado no DoGoBlock Link.');
+                }
+                const targetPath = path.join(volume, MICROBIT_REALTIME_FIRMWARE_V2);
+                this.sendstd(ansi.clear + 'Copiando firmware do modo palco para ' + volume + '\\\\n');
+                this._clearMicrobitFailFile(volume);
+                await this._copyHexToMicrobitVolume(firmwarePath, targetPath);
+                await this._verifyMicrobitTransfer(volume);
+                this.sendstd(ansi.clear + 'Firmware do modo palco copiado. Aguarde o micro:bit reiniciar.\\\\n');
+                this.sendRemoteRequest('uploadSuccess', {aborted: false});
+            } catch (err) {
+                this.sendRemoteRequest('uploadError', {
+                    message: ansi.red + err.message
+                });
+            }
+            break;
+        }`
         );
     }
 

@@ -9,7 +9,8 @@ const firmwareBaseUrl =
 
 const firmwareFiles = [
     'dogoblock-microbit-ble.hex',
-    'dogoblock-microbit-ble-v2.hex'
+    'dogoblock-microbit-ble-v2.hex',
+    'dogoblock-microbit-realtime-v2.hex'
 ];
 
 const copyFile = (source, target) => {
@@ -72,7 +73,7 @@ const syncMicrobitFirmwares = async () => {
     }
 
     if (copied !== firmwareFiles.length) {
-        throw new Error('Could not sync all Dogoblock micro:bit BLE firmwares.');
+        throw new Error('Could not sync all Dogoblock micro:bit firmwares.');
     }
 };
 

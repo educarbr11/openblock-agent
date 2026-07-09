@@ -7,7 +7,8 @@ const dryRun = process.argv.includes('--dry-run');
 const allowedArduinoFirmwares = new Set(['arduinoUno.hex', 'arduinoUnoUltra.hex']);
 const allowedMicrobitFirmwares = new Set([
     'dogoblock-microbit-ble.hex',
-    'dogoblock-microbit-ble-v2.hex'
+    'dogoblock-microbit-ble-v2.hex',
+    'dogoblock-microbit-realtime-v2.hex'
 ]);
 const removePath = target => {
     if (!fs.existsSync(target)) return;
