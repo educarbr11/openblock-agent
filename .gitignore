@@ -6,6 +6,7 @@ node_modules/
 /tools
 /firmwares
 /drivers
+/tmp
 /translations
 
 # Build dist

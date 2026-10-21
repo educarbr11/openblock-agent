@@ -44,7 +44,8 @@ usado quando a API não responde.
 ## 1. Instalar o app DoGoBlock
 
 1. Abra o DoGoBlock Web no Chrome, com internet.
-2. Clique no ícone de instalação na barra de endereço ou no menu **⋮ >
+2. Clique em **Baixar app**, no topo do site ou na barra do editor. Se o botão
+   não aparecer, use o ícone de instalação na barra de endereço ou o menu **⋮ >
    Transmitir, salvar e compartilhar > Instalar DoGoBlock**.
 3. O DoGoBlock abre em uma janela própria e ganha um ícone no Acesso rápido.
 4. **Deixe o app aberto com internet por cerca de 2 minutos.** Nesse tempo ele

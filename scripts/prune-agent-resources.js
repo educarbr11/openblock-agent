@@ -22,6 +22,8 @@ const offlineArduinoEntries = new Set([
 ]);
 const offlineArduinoPackages = new Set(['arduino', 'builtin']);
 const offlineArduinoHardware = new Set(['avr']);
+// openblock-tools also ships ARM toolchains (Uno R4, SAMD); AVR builds only need these.
+const offlineArduinoTools = new Set(['avr-gcc', 'avrdude']);
 // Same library set as the Dogoblock API compiler image (LiquidCrystal is copied from displayLcd).
 const offlineArduinoLibraries = new Set(['ArduinoGraphics', 'avr-stl', 'Servo', 'SimpleList']);
 const allowedMicrobitFirmwares = new Set([
@@ -80,6 +82,7 @@ const pruneArduinoTools = () => {
         keepOnlyChildren(arduinoRoot, offlineArduinoEntries);
         keepOnlyChildren(path.join(arduinoRoot, 'packages'), offlineArduinoPackages);
         keepOnlyChildren(path.join(arduinoRoot, 'packages', 'arduino', 'hardware'), offlineArduinoHardware);
+        keepOnlyChildren(path.join(arduinoRoot, 'packages', 'arduino', 'tools'), offlineArduinoTools);
         keepOnlyChildren(path.join(arduinoRoot, 'libraries'), offlineArduinoLibraries);
         copyPath(
             path.join(root, 'local-resources', 'extensions', 'displayLcd', 'lib', 'LiquidCrystal'),
