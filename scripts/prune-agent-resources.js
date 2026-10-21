@@ -3,8 +3,27 @@ const path = require('path');
 
 const root = path.resolve(__dirname, '..');
 const dryRun = process.argv.includes('--dry-run');
+// Offline builds keep the Arduino AVR toolchain so the Agent can compile without Dogoblock API.
+const withCompiler = process.argv.includes('--with-compiler');
 
 const allowedArduinoFirmwares = new Set(['arduinoUno.hex', 'arduinoUnoUltra.hex']);
+const offlineArduinoEntries = new Set([
+    'arduino-cli',
+    'arduino-cli.exe',
+    'arduino-cli.yaml',
+    'inventory.yaml',
+    'LICENSE.txt',
+    'libraries',
+    'package_index.json',
+    'package_index.json.sig',
+    'packages',
+    'staging',
+    'tmp'
+]);
+const offlineArduinoPackages = new Set(['arduino', 'builtin']);
+const offlineArduinoHardware = new Set(['avr']);
+// Same library set as the Dogoblock API compiler image (LiquidCrystal is copied from displayLcd).
+const offlineArduinoLibraries = new Set(['ArduinoGraphics', 'avr-stl', 'Servo', 'SimpleList']);
 const allowedMicrobitFirmwares = new Set([
     'dogoblock-microbit-ble.hex',
     'dogoblock-microbit-ble-v2.hex',
@@ -54,10 +73,24 @@ const pruneArduinoTools = () => {
         }
     }
 
-    const avrdudeRoot = path.join(arduinoRoot, 'packages', 'arduino', 'tools', 'avrdude', '6.3.0-arduino17');
-    const lightAvrdudeRoot = path.join(toolsRoot, 'avrdude');
-    copyPath(avrdudeRoot, lightAvrdudeRoot);
-    removePath(arduinoRoot);
+    if (withCompiler) {
+        if (!fs.existsSync(path.join(arduinoRoot, 'packages', 'arduino', 'hardware', 'avr'))) {
+            throw new Error('Arduino AVR core not found in tools/Arduino. Run npm run fetch:tools first.');
+        }
+        keepOnlyChildren(arduinoRoot, offlineArduinoEntries);
+        keepOnlyChildren(path.join(arduinoRoot, 'packages'), offlineArduinoPackages);
+        keepOnlyChildren(path.join(arduinoRoot, 'packages', 'arduino', 'hardware'), offlineArduinoHardware);
+        keepOnlyChildren(path.join(arduinoRoot, 'libraries'), offlineArduinoLibraries);
+        copyPath(
+            path.join(root, 'local-resources', 'extensions', 'displayLcd', 'lib', 'LiquidCrystal'),
+            path.join(arduinoRoot, 'libraries', 'LiquidCrystal')
+        );
+    } else {
+        const avrdudeRoot = path.join(arduinoRoot, 'packages', 'arduino', 'tools', 'avrdude', '6.3.0-arduino17');
+        const lightAvrdudeRoot = path.join(toolsRoot, 'avrdude');
+        copyPath(avrdudeRoot, lightAvrdudeRoot);
+        removePath(arduinoRoot);
+    }
     removePath(path.join(toolsRoot, 'Python'));
     removePath(path.join(root, 'external-resources'));
 };

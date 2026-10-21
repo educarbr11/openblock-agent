@@ -33,14 +33,18 @@ const translations = {
         'index.menu.setLanguage': 'set language',
         'index.menu.learCacheAndRestart': 'clear cache and restart',
         'index.menu.installDiver': 'install driver',
-        'index.menu.exit': 'exit'
+        'index.menu.exit': 'exit',
+        'index.compiler.offline': 'Arduino offline compiler included',
+        'index.compiler.online': 'Arduino programs are compiled by Dogoblock API'
     },
     'pt-br': {
         'index.messageBox.operationFailed': 'Operacao falhou',
         'index.menu.setLanguage': 'definir idioma',
         'index.menu.learCacheAndRestart': 'limpar cache e reiniciar',
         'index.menu.installDiver': 'instalar driver',
-        'index.menu.exit': 'sair'
+        'index.menu.exit': 'sair',
+        'index.compiler.offline': 'Compilador Arduino offline incluido',
+        'index.compiler.online': 'Programas Arduino sao compilados pela Dogoblock API'
     },
     'zh-cn': {
         'index.messageBox.operationFailed': '操作失败',
@@ -219,9 +223,15 @@ const createWindow = () => {
     webContents.once('dom-ready', () => {
         const electronVersion = process.versions['electron'.toLowerCase()];
         const chromeVersion = process.versions['chrome'.toLowerCase()];
+        const hasOfflineCompiler = fs.existsSync(path.join(resourcePath, 'tools', 'Arduino',
+            os.platform() === 'win32' ? 'arduino-cli.exe' : 'arduino-cli'));
+        const compilerStatus = hasOfflineCompiler ?
+            t('index.compiler.offline', 'Arduino offline compiler included') :
+            t('index.compiler.online', 'Arduino programs are compiled by Dogoblock API');
         mainWindow.webContents.executeJavaScript(
             `document.getElementById("product-name").innerHTML = "${productName}";
             document.getElementById("product-version").innerHTML = "Version ${version}";
+            document.getElementById("compiler-status").innerHTML = "${compilerStatus}";
             document.getElementById("electron-version").innerHTML = "Electron ${electronVersion}";
             document.getElementById("chrome-version").innerHTML = "Chrome ${chromeVersion}";`
         );

@@ -4,6 +4,7 @@ const asar = require('@electron/asar');
 
 const root = path.resolve(__dirname, '..');
 const dist = path.join(root, 'dist');
+const withCompiler = process.argv.includes('--with-compiler');
 
 const requiredPackages = [
     '@serialport/stream',
@@ -22,6 +23,16 @@ const requiredUnpackedPatternGroups = [
         /node_modules[\\/](?:.*[\\/]node_modules[\\/])?@abandonware[\\/]bluetooth-hci-socket[\\/]node_modules[\\/]usb[\\/]prebuilds[\\/]win32-x64[\\/]node\.napi\.node$/,
         /node_modules[\\/](?:.*[\\/]node_modules[\\/])?@abandonware[\\/]bluetooth-hci-socket[\\/]node_modules[\\/]usb[\\/]prebuilds[\\/]linux-x64[\\/]node\.napi\.(?:glibc|musl)\.node$/
     ]
+];
+
+// Arduino toolchain entries needed by the offline compiler (dist:offline).
+const requiredCompilerEntries = [
+    'packages/arduino/hardware/avr',
+    'packages/arduino/tools/avr-gcc',
+    'packages/builtin/tools/ctags',
+    'libraries/LiquidCrystal',
+    'libraries/Servo',
+    'libraries/SimpleList'
 ];
 
 const fail = message => {
@@ -118,6 +129,19 @@ const verifyApp = appDir => {
     }
 
     console.log(`${appName}: packaged serialport and BLE runtime dependencies verified`);
+
+    if (withCompiler) {
+        const arduinoRoot = path.join(appDir, 'resources', 'tools', 'Arduino');
+        const missing = requiredCompilerEntries.filter(entry =>
+            !fs.existsSync(path.join(arduinoRoot, ...entry.split('/'))));
+        if (!['arduino-cli', 'arduino-cli.exe'].some(name => fs.existsSync(path.join(arduinoRoot, name)))) {
+            missing.unshift('arduino-cli');
+        }
+        if (missing.length) {
+            fail(`${appName}: offline Arduino compiler is missing ${missing.join(', ')}`);
+        }
+        console.log(`${appName}: offline Arduino compiler verified`);
+    }
 };
 
 const apps = findUnpackedApps();

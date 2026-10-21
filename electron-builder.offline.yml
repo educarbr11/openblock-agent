@@ -1,0 +1,8 @@
+# DoGoBlock Agent Offline: same app as electron-builder.yml, packaged with the
+# Arduino AVR compiler (npm run dist:offline). Used on Chromebooks (Linux) and
+# other computers that must send Arduino programs without Dogoblock API.
+# The bundled openblock-tools toolchain is x64 only, so build it on x64.
+# Arrays from the parent config are concatenated, so only override scalars here.
+extends: ./electron-builder.yml
+
+artifactName: "DoGoBlock-Agent-Offline_v${version}_${os}_${arch}.${ext}"
