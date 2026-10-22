@@ -32,7 +32,9 @@ const requiredCompilerEntries = [
     'packages/builtin/tools/ctags',
     'libraries/LiquidCrystal',
     'libraries/Servo',
-    'libraries/SimpleList'
+    'libraries/SimpleList',
+    // Without it arduino-cli tries to download the index on every start.
+    'library_index.json'
 ];
 
 const fail = message => {

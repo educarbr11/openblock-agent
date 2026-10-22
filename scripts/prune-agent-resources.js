@@ -14,6 +14,7 @@ const offlineArduinoEntries = new Set([
     'inventory.yaml',
     'LICENSE.txt',
     'libraries',
+    'library_index.json',
     'package_index.json',
     'package_index.json.sig',
     'packages',
@@ -55,6 +56,18 @@ const copyPath = (source, target) => {
     console.log(`copied ${relativeSource} -> ${relativeTarget}`);
 };
 
+// arduino-cli downloads a missing library index every time it starts; without internet each
+// start waits for DNS timeouts (10 s or more). Installed libraries are found by scanning their
+// folders, so an empty index is enough.
+const writeEmptyLibraryIndex = target => {
+    if (dryRun) {
+        console.log(`[dry-run] write ${path.relative(root, target)}`);
+        return;
+    }
+    fs.writeFileSync(target, '{"libraries":[]}\n');
+    console.log(`wrote ${path.relative(root, target)}`);
+};
+
 const keepOnlyChildren = (dir, allowedNames) => {
     if (!fs.existsSync(dir)) return;
     for (const child of fs.readdirSync(dir)) {
@@ -88,6 +101,7 @@ const pruneArduinoTools = () => {
             path.join(root, 'local-resources', 'extensions', 'displayLcd', 'lib', 'LiquidCrystal'),
             path.join(arduinoRoot, 'libraries', 'LiquidCrystal')
         );
+        writeEmptyLibraryIndex(path.join(arduinoRoot, 'library_index.json'));
     } else {
         const avrdudeRoot = path.join(arduinoRoot, 'packages', 'arduino', 'tools', 'avrdude', '6.3.0-arduino17');
         const lightAvrdudeRoot = path.join(toolsRoot, 'avrdude');

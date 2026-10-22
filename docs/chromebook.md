@@ -116,8 +116,9 @@ página não abrir:
    seriais; selecione a da placa.
 3. Monte o programa no modo programação e clique em **Enviar**.
 4. Sem internet, a janela de envio mostra "Compilando offline no DoGoBlock
-   Agent...". O primeiro envio de cada placa pode levar até 1 minuto, e os
-   seguintes são mais rápidos.
+   Agent...". O primeiro envio de cada placa demora alguns segundos a mais,
+   porque o Agent prepara os arquivos base da placa; os seguintes são mais
+   rápidos.
 
 ### Arduino Leonardo (experimental)
 
@@ -161,6 +162,8 @@ usuário é separado.
 | "O DoGoBlock Agent aberto nao compila programas offline" | O Agent instalado é o comum. Instale a versão Offline (passo 3). |
 | "O DoGoBlock Agent recusou a compilacao pedida por este endereco do editor" | O editor foi aberto por um endereço que o Agent não reconhece. Use o endereço oficial do DoGoBlock Web e avise a equipe DoGoBlock. |
 | O editor não abre sem internet | Abra o app instalado uma vez com internet e espere cerca de 2 minutos (passo 1). |
-| A placa não aparece na lista do Chrome | Desative o compartilhamento da placa com o Linux e reconecte o cabo. |
+| A placa não aparece na lista do Chrome (Web Serial USB) | Desative o compartilhamento da placa com o Linux, reconecte o cabo e clique em **Atualizar**. |
+| A placa não aparece na lista do DoGoBlock Link | Ative a placa em **Gerenciar dispositivos USB** do Linux, reconecte o cabo e clique em **Atualizar**. Se continuar sem aparecer, marque **Mostrar todos os dispositivos conectáveis**. |
+| A placa aparece no DoGoBlock Link, mas não conecta | No Terminal, rode `sudo usermod -aG dialout $USER` e desligue e ligue o Linux. |
 | "Web Serial USB currently supports only Arduino Uno and Nano" | Para o Leonardo, siga a seção [Arduino Leonardo](#arduino-leonardo-experimental). |
 | O envio falha com "Build failed" | Erro no código gerado. Teste o mesmo projeto com internet para ver a mensagem da API. |
