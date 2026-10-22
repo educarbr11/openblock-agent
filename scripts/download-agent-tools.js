@@ -77,9 +77,12 @@ const getExpectedChecksum = async fileName => {
 };
 
 const run = async () => {
-    const fileName = assetsByPlatform[os.platform()];
+    // OPENBLOCK_TOOLS_PLATFORM=win32 fetches the Windows tools on Linux, for cross builds of the
+    // DoGoBlock desktop app (use a separate copy of this repository).
+    const platform = process.env.OPENBLOCK_TOOLS_PLATFORM || os.platform();
+    const fileName = assetsByPlatform[platform];
     if (!fileName) {
-        throw new Error(`Unsupported platform for Dogoblock Agent tools: ${os.platform()}`);
+        throw new Error(`Unsupported platform for Dogoblock Agent tools: ${platform}`);
     }
 
     const archivePath = path.join(tmpRoot, fileName);

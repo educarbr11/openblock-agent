@@ -11,16 +11,21 @@ São duas partes:
 | **App DoGoBlock** (PWA) | Editor de blocos. Depois de instalado e aberto uma vez com internet, abre mesmo sem conexão. | Chrome |
 | **DoGoBlock Agent Offline** | Compila o código Arduino no próprio Chromebook. Também grava placas que o Chrome não consegue gravar sozinho. | Linux do ChromeOS |
 
-Com internet, o editor continua compilando pela Dogoblock API. O Agent só é
-usado quando a API não responde.
+A conexão escolhida na janela de conexão do editor define onde o código é
+compilado:
+
+- **DoGoBlock Link** (o Agent): compila no próprio Chromebook, **sem internet**.
+  A placa precisa estar compartilhada com o Linux.
+- **Web Serial USB**: compila na Dogoblock API, **só com internet**. A placa fica
+  com o Chrome.
 
 ## O que funciona sem internet
 
 | Recurso | Sem internet |
 | --- | --- |
 | Abrir o editor e montar blocos | Sim |
-| Enviar programa para Arduino Uno e Nano | Sim, com o Agent Offline aberto |
-| Enviar programa para Arduino Leonardo | Experimental: com o Agent Offline e a placa compartilhada com o Linux (passo 6) |
+| Enviar programa para Arduino Uno e Nano | Sim, pelo DoGoBlock Link (passo 6) |
+| Enviar programa para Arduino Leonardo | Experimental, pelo DoGoBlock Link (passo 6) |
 | Modo tempo real (palco) com Arduino Uno e Nano | Sim |
 | Salvar e abrir projetos pelo menu Arquivo, no computador | Sim |
 | Login, projetos na nuvem e comunidade | Não |
@@ -108,33 +113,27 @@ página não abrir:
 
 ## 6. Enviar um programa sem internet
 
-### Arduino Uno e Nano
+Sem internet, o envio sempre passa pelo **DoGoBlock Link** (o Agent):
 
-1. Conecte a placa pelo cabo USB. **Não** compartilhe a placa com o Linux: ela
-   precisa ficar com o Chrome.
-2. No DoGoBlock, escolha a placa e conecte. O Chrome mostra a lista de portas
-   seriais; selecione a da placa.
-3. Monte o programa no modo programação e clique em **Enviar**.
-4. Sem internet, a janela de envio mostra "Compilando offline no DoGoBlock
-   Agent...". O primeiro envio de cada placa demora alguns segundos a mais,
-   porque o Agent prepara os arquivos base da placa; os seguintes são mais
-   rápidos.
+1. Conecte a placa pelo cabo USB e abra **Configurações > Sobre o ChromeOS >
+   Desenvolvedores > Ambiente de desenvolvimento do Linux > Gerenciar
+   dispositivos USB**.
+2. Ative a placa (por exemplo "USB2.0-Serial" para clones com CH340, ou
+   "Arduino Uno").
+3. No DoGoBlock, escolha a placa, abra a janela de conexão e escolha **Conexão:
+   DoGoBlock Link**. A placa aparece na lista; clique para conectar.
+4. Monte o programa no modo programação e clique em **Enviar**. A janela de
+   envio mostra "Compilando offline no DoGoBlock Link...". O primeiro envio de
+   cada placa demora alguns segundos a mais, porque o Agent prepara os arquivos
+   base da placa; os seguintes são mais rápidos.
 
-### Arduino Leonardo (experimental)
-
-O Chrome não grava o Leonardo diretamente, então o envio passa inteiro pelo
-Agent. Para gravar, o Leonardo reinicia e reaparece no USB como outro
-dispositivo. Se o ChromeOS perguntar de novo se deve conectá-lo ao Linux,
+**Leonardo (experimental):** para gravar, ele reinicia e reaparece no USB como
+outro dispositivo. Se o ChromeOS perguntar de novo se deve conectá-lo ao Linux,
 aceite. Este caminho ainda precisa ser validado em cada modelo de Chromebook.
 
-1. Conecte a placa e abra **Configurações > Sobre o ChromeOS > Desenvolvedores >
-   Ambiente de desenvolvimento do Linux > Gerenciar dispositivos USB**.
-2. Ative a placa (geralmente aparece como "Arduino Leonardo").
-3. No DoGoBlock, conecte a placa usando o **DoGoBlock Link** (o Agent) em vez do
-   Web Serial e clique em **Enviar**.
-
 Enquanto a placa estiver compartilhada com o Linux, o Chrome não a enxerga. Para
-voltar a usar Web Serial, desative o compartilhamento no mesmo menu.
+usar **Web Serial USB** (só com internet), desative o compartilhamento no mesmo
+menu e reconecte o cabo.
 
 ## Chromebooks gerenciados
 
@@ -165,5 +164,5 @@ usuário é separado.
 | A placa não aparece na lista do Chrome (Web Serial USB) | Desative o compartilhamento da placa com o Linux, reconecte o cabo e clique em **Atualizar**. |
 | A placa não aparece na lista do DoGoBlock Link | Ative a placa em **Gerenciar dispositivos USB** do Linux, reconecte o cabo e clique em **Atualizar**. Se continuar sem aparecer, marque **Mostrar todos os dispositivos conectáveis**. |
 | A placa aparece no DoGoBlock Link, mas não conecta | No Terminal, rode `sudo usermod -aG dialout $USER` e desligue e ligue o Linux. |
-| "Web Serial USB currently supports only Arduino Uno and Nano" | Para o Leonardo, siga a seção [Arduino Leonardo](#arduino-leonardo-experimental). |
+| "Web Serial USB currently supports only Arduino Uno and Nano" | Para o Leonardo, use o DoGoBlock Link (passo 6). |
 | O envio falha com "Build failed" | Erro no código gerado. Teste o mesmo projeto com internet para ver a mensagem da API. |
