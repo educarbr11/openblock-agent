@@ -33,6 +33,8 @@ const requiredCompilerEntries = [
     'libraries/LiquidCrystal',
     'libraries/Servo',
     'libraries/SimpleList',
+    'libraries/Adafruit_Fingerprint/Adafruit_Fingerprint.h',
+    'libraries/DoGoFingerprint/src/DoGoFingerprint.h',
     // Without it arduino-cli tries to download the index on every start.
     'library_index.json'
 ];

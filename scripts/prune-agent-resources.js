@@ -25,8 +25,11 @@ const offlineArduinoPackages = new Set(['arduino', 'builtin']);
 const offlineArduinoHardware = new Set(['avr']);
 // openblock-tools also ships ARM toolchains (Uno R4, SAMD); AVR builds only need these.
 const offlineArduinoTools = new Set(['avr-gcc', 'avrdude']);
-// Same library set as the Dogoblock API compiler image (LiquidCrystal is copied from displayLcd).
-const offlineArduinoLibraries = new Set(['ArduinoGraphics', 'avr-stl', 'Servo', 'SimpleList']);
+// Extension libraries are copied from local-resources after pruning downloaded tools.
+const offlineArduinoLibraries = new Set([
+    'ArduinoGraphics', 'avr-stl', 'Servo', 'SimpleList',
+    'LiquidCrystal', 'Adafruit_Fingerprint', 'DoGoFingerprint'
+]);
 const allowedMicrobitFirmwares = new Set([
     'dogoblock-microbit-ble.hex',
     'dogoblock-microbit-ble-v2.hex',
@@ -101,6 +104,13 @@ const pruneArduinoTools = () => {
             path.join(root, 'local-resources', 'extensions', 'displayLcd', 'lib', 'LiquidCrystal'),
             path.join(arduinoRoot, 'libraries', 'LiquidCrystal')
         );
+        for (const library of ['Adafruit_Fingerprint', 'DoGoFingerprint']) {
+            const source = path.join(root, 'local-resources', 'extensions', 'fingerprint', 'lib', library);
+            if (!fs.existsSync(path.join(source, 'library.properties'))) {
+                throw new Error(`Fingerprint library missing: ${source}. Sync device extensions before packaging.`);
+            }
+            copyPath(source, path.join(arduinoRoot, 'libraries', library));
+        }
         writeEmptyLibraryIndex(path.join(arduinoRoot, 'library_index.json'));
     } else {
         const avrdudeRoot = path.join(arduinoRoot, 'packages', 'arduino', 'tools', 'avrdude', '6.3.0-arduino17');
