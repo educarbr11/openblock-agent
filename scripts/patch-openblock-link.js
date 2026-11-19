@@ -3,6 +3,26 @@ const path = require('path');
 
 const linkRoot = path.join(__dirname, '..', 'node_modules', 'openblock-link');
 
+const syncLanRuntime = () => {
+    const candidates = [
+        process.env.OPENBLOCK_LINK_PATH,
+        path.resolve(__dirname, '..', '..', 'openblock-link')
+    ].filter(Boolean);
+    const sourceLink = candidates.find(candidate =>
+        fs.existsSync(path.join(candidate, 'src', 'lan', 'hub.js')) &&
+        fs.existsSync(path.join(candidate, 'src', 'session', 'lan.js'))
+    );
+    if (sourceLink && fs.realpathSync(sourceLink) !== fs.realpathSync(linkRoot)) {
+        fs.cpSync(path.join(sourceLink, 'src', 'lan'), path.join(linkRoot, 'src', 'lan'), {recursive: true});
+        fs.copyFileSync(path.join(sourceLink, 'src', 'session', 'lan.js'),
+            path.join(linkRoot, 'src', 'session', 'lan.js'));
+    }
+    if (!fs.existsSync(path.join(linkRoot, 'src', 'lan', 'hub.js')) ||
+        !fs.existsSync(path.join(linkRoot, 'src', 'session', 'lan.js'))) {
+        throw new Error('LAN runtime is missing. Set OPENBLOCK_LINK_PATH to the current openblock-link repository.');
+    }
+};
+
 const replaceOnce = (source, search, replacement, label) => {
     if (source.includes(replacement)) return source;
     if (!source.includes(search)) {
@@ -194,6 +214,24 @@ const patchLinkIndex = () => {
             'BLE route'
         );
     }
+    source = replaceOnce(source,
+        "const clc = require('cli-color');",
+        "const clc = require('cli-color');\nconst LanHub = require('./lan/hub');",
+        'LAN hub import');
+    source = replaceOnce(source,
+        "    '/openblock/compiler': require('./session/compiler') // eslint-disable-line global-require",
+        "    '/openblock/compiler': require('./session/compiler'), // eslint-disable-line global-require\n" +
+            "    '/openblock/lan': require('./session/lan') // eslint-disable-line global-require",
+        'LAN route');
+    source = replaceOnce(source,
+        '        this.toolsProvider = options.toolsProvider || null;',
+        '        this.toolsProvider = options.toolsProvider || null;\n        this._lanHub = new LanHub(options.lan);',
+        'shared LAN hub');
+    source = replaceOnce(source,
+        '                session = new Session(socket, this.userDataPath, this.toolsPath, this.toolsProvider);',
+        '                session = new Session(socket, this.userDataPath, ' +
+            'this.toolsPath, this.toolsProvider, this._lanHub);',
+        'LAN session hub');
     fs.writeFileSync(file, source);
 };
 
@@ -724,6 +762,7 @@ module.exports = MicrobitBleFirmware;
     fs.writeFileSync(file, source);
 };
 
+syncLanRuntime();
 patchLinkPackage();
 copySerialportRuntimeIntoLink();
 patchLinkIndex();
